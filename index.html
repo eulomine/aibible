@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI 설교 도우미 Ver.5.1 (오류 수정 완벽판)</title>
+    <title>AI 설교 도우미 (완성버전)</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Lucide Icons -->
@@ -50,8 +50,8 @@
         <div class="max-w-5xl mx-auto px-4 flex items-center gap-3">
             <i data-lucide="book-open" class="w-8 h-8"></i>
             <div>
-                <h1 class="text-2xl font-bold">AI 설교 도우미 Ver.5.1</h1>
-                <p class="text-blue-200 text-sm mt-1">대역비교 및 배경지식 영역의 설교 제언 완벽 통합 (버그 수정)</p>
+                <h1 class="text-2xl font-bold">AI 설교 도우미</h1>
+                <p class="text-blue-200 text-sm mt-1">대역비교, 원어 주해, 풀스크립트 및 개인 API 환경 지원</p>
             </div>
         </div>
     </header>
@@ -60,6 +60,19 @@
         
         <!-- Input Section -->
         <div class="md:col-span-4 space-y-6 no-print">
+            
+            <!-- NEW: API Key Input Section -->
+            <div class="bg-indigo-50 rounded-xl shadow-sm border border-indigo-200 p-5">
+                <h2 class="text-sm font-bold text-indigo-900 flex items-center gap-2 mb-3">
+                    <i data-lucide="key" class="w-4 h-4"></i> 구글 Gemini API 키 설정
+                </h2>
+                <input type="password" id="geminiApiKey" placeholder="발급받은 API 키 입력" class="w-full text-sm px-3 py-2.5 border border-indigo-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none mb-2">
+                <p class="text-[12px] text-indigo-600 leading-tight">
+                    ※ 깃허브 등 외부 환경 사용 시 필수입니다. 브라우저에만 안전하게 저장됩니다. <br>
+                    <a href="https://aistudio.google.com/app/apikey" target="_blank" class="underline font-bold hover:text-indigo-800">👉 API 키 무료 발급받기</a>
+                </p>
+            </div>
+
             <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 sticky top-6">
                 <h2 class="text-lg font-semibold flex items-center gap-2 mb-4">
                     <i data-lucide="pen-tool" class="w-5 h-5 text-blue-600"></i>
@@ -68,11 +81,11 @@
                 <div class="space-y-4">
                     <div>
                         <label for="passage" class="block text-sm font-medium text-slate-700 mb-1">1. 성경 본문 (선택)</label>
-                        <input type="text" id="passage" placeholder="예: 에스겔 33:21-33" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                        <input type="text" id="passage" placeholder="예: 창세기 1:1-5" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
                     </div>
                     <div>
                         <label for="context" class="block text-sm font-medium text-slate-700 mb-1">2. 설교 상황 (선택)</label>
-                        <input type="text" id="context" placeholder="예: 새벽예배, 주일대예배" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                        <input type="text" id="context" placeholder="예: 주일예배, 심방" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
                         <div class="flex flex-wrap gap-2 mt-2">
                             <button onclick="setContext('새벽예배')" class="text-xs bg-slate-100 hover:bg-blue-100 text-slate-600 px-2 py-1 rounded transition">새벽예배</button>
                             <button onclick="setContext('주일예배')" class="text-xs bg-slate-100 hover:bg-blue-100 text-slate-600 px-2 py-1 rounded transition">주일예배</button>
@@ -99,7 +112,7 @@
 
             <div id="emptyState" class="flex flex-col items-center justify-center h-full min-h-[400px] bg-white rounded-xl shadow-sm border border-slate-200 text-slate-400 no-print">
                 <i data-lucide="library" class="w-16 h-16 mb-4 opacity-50"></i>
-                <p class="text-lg">본문이나 상황을 입력하고 생성을 눌러주세요.</p>
+                <p class="text-lg">왼쪽에서 API 키를 넣고 생성을 눌러주세요.</p>
             </div>
 
             <!-- 결과물 컨테이너 -->
@@ -313,8 +326,23 @@
 
     <script>
         lucide.createIcons();
-        const apiKey = ""; 
         let currentSermonState = { passage: "", title: "", context: "", fullDataRaw: null };
+
+        // 페이지 로드 시 로컬 스토리지에서 API 키 불러오기
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedKey = localStorage.getItem('geminiApiKey');
+            if(savedKey) {
+                document.getElementById('geminiApiKey').value = savedKey;
+            }
+        });
+
+        function getApiKey() {
+            const key = document.getElementById('geminiApiKey').value.trim();
+            if(key) {
+                localStorage.setItem('geminiApiKey', key);
+            }
+            return key;
+        }
 
         function setContext(text) { document.getElementById('context').value = text; }
         const delay = ms => new Promise(res => setTimeout(res, ms));
@@ -356,7 +384,7 @@
             setTimeout(() => { document.body.classList.remove(`print-mode-${mode}`); }, 1000);
         }
 
-        // --- 💡 버그 수정: Schema 조각 사전 분리 (Initialization 오류 방지) ---
+        // --- Schema 조각 사전 분리 (Initialization 오류 방지) ---
         const bibleTextsSchema = { 
             type: "ARRAY", items: { type: "OBJECT", properties: { verseNum: { type: "STRING" }, koreanRev: { type: "STRING" }, koreanNew: { type: "STRING" }, english: { type: "STRING" } }, required: ["verseNum", "koreanRev", "koreanNew", "english"] } 
         };
@@ -400,7 +428,12 @@
 
         // --- Core API Request ---
         async function callGeminiAPI(targetSection, passageInput, contextInput, retries = 3) {
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+            const userApiKey = getApiKey();
+            if (!userApiKey) {
+                throw new Error("API 키가 입력되지 않았습니다. 좌측 상단에 API 키를 입력해주세요.");
+            }
+
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${userApiKey}`;
             let prompt = "";
             let sysInst = "당신은 개혁주의/복음주의 신학 기반의 탁월한 설교자이자 목회 보조 AI입니다. 정보 전달을 넘어 목회적/설교적 가이드를 확실히 제공합니다.";
             let schema = null;
@@ -438,11 +471,14 @@
             for (let i = 0; i <= retries; i++) {
                 try {
                     const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-                    if (!response.ok) throw new Error(`API 오류`);
+                    if (!response.ok) {
+                        const errData = await response.json();
+                        throw new Error(errData.error?.message || `API 오류 (${response.status}) - API 키가 유효한지 확인해주세요.`);
+                    }
                     const data = await response.json();
                     return JSON.parse(data.candidates[0].content.parts[0].text);
                 } catch (error) {
-                    if (i === retries) throw error;
+                    if (i === retries || error.message.includes("API 키가 유효한지")) throw error;
                     await delay(1000 * Math.pow(2, i));
                 }
             }
@@ -549,10 +585,16 @@
             const contextInput = document.getElementById('context').value.trim();
             const errorBox = document.getElementById('errorBox');
             
-            if (targetSection === 'all' && !passageInput && !contextInput) {
-                errorBox.innerHTML = "<strong>입력 오류:</strong> 성경 본문이나 상황을 입력해주세요."; errorBox.classList.remove('hidden'); return;
-            }
             errorBox.classList.add('hidden');
+
+            if (targetSection === 'all' && !passageInput && !contextInput) {
+                errorBox.innerHTML = "<strong>입력 오류:</strong> 성경 본문이나 상황을 입력해주세요."; 
+                errorBox.classList.remove('hidden'); return;
+            }
+            if (!document.getElementById('geminiApiKey').value.trim()) {
+                errorBox.innerHTML = "<strong>설정 오류:</strong> 좌측 상단에 구글 Gemini API 키를 입력해주세요.";
+                errorBox.classList.remove('hidden'); return;
+            }
 
             setButtonsDisabled(true);
             if (targetSection === 'all') {
@@ -572,7 +614,7 @@
                 }
             } catch (error) {
                 if(targetSection === 'all') {
-                    errorBox.innerHTML = `<strong>오류:</strong> (${error.message})`; errorBox.classList.remove('hidden');
+                    errorBox.innerHTML = `<strong>오류 발생:</strong> ${error.message}`; errorBox.classList.remove('hidden');
                     document.getElementById('globalLoadingState').classList.replace('flex', 'hidden');
                 } else alert(`새로고침 오류: ${error.message}`);
             } finally {
@@ -628,7 +670,7 @@
                 });
                 lucide.createIcons();
                 modalLoading.classList.replace('flex', 'hidden'); modalContent.classList.remove('hidden');
-            } catch (error) { alert('후보를 불러오는데 실패했습니다.'); closePassageModal(); }
+            } catch (error) { alert(`후보를 불러오는데 실패했습니다: ${error.message}`); closePassageModal(); }
         }
         function closePassageModal() { modal.classList.add('hidden'); document.getElementById('loadingText').textContent = "말씀과 주석을 깊이 연구 중입니다..."; }
     </script>
