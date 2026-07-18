@@ -6,38 +6,27 @@
     <title>AI 설교 도우미 (완성버전)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- Puter.js: API 키 없이 무료로 AI 사용 -->
     <script src="https://js.puter.com/v2/"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
         @import url('https://fonts.googleapis.com/css2?family=Gentium+Book+Plus:ital,wght@0,400;0,700;1,400&display=swap');
-        
         body { font-family: 'Noto Sans KR', sans-serif; background-color: #f8fafc; }
         .font-original { font-family: 'Gentium Book Plus', serif; }
-        
         .loader { border: 3px solid #f3f3f3; border-top: 3px solid #3b82f6; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
         .loader-large { width: 40px; height: 40px; border-width: 4px; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        
-        .prose-custom p { margin-bottom: 0.75rem; line-height: 1.6; }
-        .prose-custom ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 1rem; }
-        .prose-custom li { margin-bottom: 0.5rem; }
         .script-format p { margin-bottom: 1.25rem; line-height: 1.8; font-size: 1.05rem; }
-        
-        .section-loading { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255, 255, 255, 0.8); display: flex; align-items: center; justify-content: center; border-radius: inherit; z-index: 10; }
+        .section-loading { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,0.8); display: flex; align-items: center; justify-content: center; border-radius: inherit; z-index: 10; }
         .refresh-btn { transition: transform 0.2s; }
         .refresh-btn:hover { transform: rotate(15deg); }
         .refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-        .modal-bg { background-color: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); }
-
+        .modal-bg { background-color: rgba(15,23,42,0.6); backdrop-filter: blur(4px); }
         #draftWrapper, #fullSermonContent { background-color: white; }
-
         @media print {
             body { background-color: white; }
             .no-print { display: none !important; }
-            .shadow-sm, .shadow-md, .shadow-lg, .shadow-2xl { box-shadow: none !important; }
-            .border { border: 1px solid #ddd !important; }
-            #printArea { padding: 0; margin: 0; width: 100%; max-width: 100%; }
+            .shadow-sm,.shadow-md,.shadow-lg,.shadow-2xl { box-shadow: none !important; }
+            #printArea { padding:0; margin:0; width:100%; max-width:100%; }
             body.print-mode-draft #fullSermonWrapper { display: none !important; }
             body.print-mode-script #draftWrapper { display: none !important; }
         }
@@ -45,23 +34,21 @@
 </head>
 <body class="text-slate-800 min-h-screen pb-12">
 
-    <!-- Header -->
     <header class="bg-blue-800 text-white shadow-lg py-6 no-print">
         <div class="max-w-5xl mx-auto px-4 flex items-center gap-3">
             <i data-lucide="book-open" class="w-8 h-8"></i>
             <div>
                 <h1 class="text-2xl font-bold">AI 설교 도우미</h1>
-                <p class="text-blue-200 text-sm mt-1">대역비교, 원어 주해, 풀스크립트 및 무료 AI 지원</p>
+                <p class="text-blue-200 text-sm mt-1">대역비교, 원어 주해, 풀스크립트 — 자동 모델 전환</p>
             </div>
         </div>
     </header>
 
     <main class="max-w-5xl mx-auto px-4 py-8 grid grid-cols-1 md:grid-cols-12 gap-8">
         
-        <!-- Input Section -->
+        <!-- ========== 좌측 입력 ========== -->
         <div class="md:col-span-4 space-y-6 no-print">
             
-            <!-- API 모드 선택 -->
             <div class="bg-indigo-50 rounded-xl shadow-sm border border-indigo-200 p-5">
                 <h2 class="text-sm font-bold text-indigo-900 flex items-center gap-2 mb-3">
                     <i data-lucide="settings" class="w-4 h-4"></i> AI 엔진 설정
@@ -69,39 +56,32 @@
                 <div class="space-y-2 mb-3">
                     <label class="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-indigo-100 transition">
                         <input type="radio" name="apiMode" value="puter" checked onchange="toggleApiMode()" class="text-indigo-600">
-                        <div>
-                            <span class="text-sm font-bold text-indigo-800">무료 모드 (Puter.js)</span>
-                            <p class="text-[11px] text-indigo-600">API 키 불필요, 즉시 사용 가능</p>
-                        </div>
+                        <div><span class="text-sm font-bold text-indigo-800">무료 모드 (Puter.js)</span><p class="text-[11px] text-indigo-600">API 키 불필요, 즉시 사용</p></div>
                     </label>
                     <label class="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-indigo-100 transition">
                         <input type="radio" name="apiMode" value="gemini" onchange="toggleApiMode()" class="text-indigo-600">
-                        <div>
-                            <span class="text-sm font-bold text-indigo-800">직접 API 키 입력 (Gemini)</span>
-                            <p class="text-[11px] text-indigo-600">본인 키 사용, 더 빠를 수 있음</p>
-                        </div>
+                        <div><span class="text-sm font-bold text-indigo-800">직접 API 키 입력</span><p class="text-[11px] text-indigo-600">본인 키 사용, 자동 모델 전환</p></div>
                     </label>
                 </div>
                 <div id="geminiKeySection" class="hidden">
-                    <input type="password" id="geminiApiKey" placeholder="발급받은 Gemini API 키 입력" class="w-full text-sm px-3 py-2.5 border border-indigo-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none mb-2">
-                    <p class="text-[12px] text-indigo-600 leading-tight">
-                        <a href="https://aistudio.google.com/app/apikey" target="_blank" class="underline font-bold hover:text-indigo-800">API 키 무료 발급받기</a>
-                    </p>
+                    <input type="password" id="geminiApiKey" placeholder="Gemini API 키 입력" class="w-full text-sm px-3 py-2.5 border border-indigo-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none mb-2">
+                    <p class="text-[12px] text-indigo-600"><a href="https://aistudio.google.com/app/apikey" target="_blank" class="underline font-bold hover:text-indigo-800">API 키 무료 발급받기</a></p>
+                </div>
+                <div id="currentModelInfo" class="mt-3 p-2.5 bg-white rounded-lg border border-indigo-100 hidden">
+                    <p class="text-[11px] text-slate-500 mb-0.5">현재 사용 모델</p>
+                    <p id="currentModelName" class="text-sm font-bold text-indigo-700">-</p>
                 </div>
             </div>
 
             <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 sticky top-6">
-                <h2 class="text-lg font-semibold flex items-center gap-2 mb-4">
-                    <i data-lucide="pen-tool" class="w-5 h-5 text-blue-600"></i>
-                    설교 정보 입력
-                </h2>
+                <h2 class="text-lg font-semibold flex items-center gap-2 mb-4"><i data-lucide="pen-tool" class="w-5 h-5 text-blue-600"></i> 설교 정보 입력</h2>
                 <div class="space-y-4">
                     <div>
-                        <label for="passage" class="block text-sm font-medium text-slate-700 mb-1">1. 성경 본문 (선택)</label>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">1. 성경 본문 (선택)</label>
                         <input type="text" id="passage" placeholder="예: 창세기 1:1-5" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
                     </div>
                     <div>
-                        <label for="context" class="block text-sm font-medium text-slate-700 mb-1">2. 설교 상황 (선택)</label>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">2. 설교 상황 (선택)</label>
                         <input type="text" id="context" placeholder="예: 주일예배, 심방" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
                         <div class="flex flex-wrap gap-2 mt-2">
                             <button onclick="setContext('새벽예배')" class="text-xs bg-slate-100 hover:bg-blue-100 text-slate-600 px-2 py-1 rounded transition">새벽예배</button>
@@ -110,21 +90,20 @@
                         </div>
                     </div>
                     <button id="generateBtn" onclick="generateSermon('all')" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg shadow-md transition-colors flex items-center justify-center gap-2 mt-4">
-                        <i data-lucide="sparkles" class="w-5 h-5"></i>
-                        설교 초안 생성하기
+                        <i data-lucide="sparkles" class="w-5 h-5"></i> 설교 초안 생성하기
                     </button>
                 </div>
             </div>
             <div id="errorBox" class="hidden bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm"></div>
         </div>
 
-        <!-- Output Section -->
+        <!-- ========== 우측 결과 ========== -->
         <div id="printArea" class="md:col-span-8">
             
             <div id="globalLoadingState" class="hidden flex-col items-center justify-center h-64 bg-white rounded-xl shadow-sm border border-slate-200 no-print">
                 <div class="loader loader-large mb-4"></div>
                 <p class="text-blue-800 font-medium text-lg" id="loadingText">말씀의 지혜를 모으고 있습니다...</p>
-                <p class="text-slate-500 text-sm mt-2">각 영역별 설교 제언을 함께 분석 중입니다 (약 20~40초 소요)</p>
+                <p class="text-slate-500 text-sm mt-2" id="loadingSubText">최적 모델을 선택하고 있습니다...</p>
             </div>
 
             <div id="emptyState" class="flex flex-col items-center justify-center h-full min-h-[400px] bg-white rounded-xl shadow-sm border border-slate-200 text-slate-400 no-print">
@@ -133,23 +112,18 @@
                 <p class="text-sm mt-2">API 키 없이도 바로 사용 가능합니다!</p>
             </div>
 
-            <!-- 결과물 컨테이너 -->
             <div id="resultContent" class="hidden space-y-6">
-                
-                <!-- ================= [ 초안 영역 ] ================= -->
                 <div id="draftWrapper" class="space-y-6 rounded-xl">
                     
-                    <!-- 0. Header (Title & Passage) -->
+                    <!-- 제목 -->
                     <div id="sec-header" class="relative bg-white rounded-xl shadow-sm border border-slate-200 p-6 text-center border-t-4 border-t-blue-600">
-                        <button onclick="openPassageModal()" class="refresh-btn no-print absolute top-4 right-4 text-slate-400 hover:text-blue-600" title="다른 본문 추천받기">
-                            <i data-lucide="refresh-cw" class="w-5 h-5"></i>
-                        </button>
+                        <button onclick="openPassageModal()" class="refresh-btn no-print absolute top-4 right-4 text-slate-400 hover:text-blue-600" title="다른 본문 추천"><i data-lucide="refresh-cw" class="w-5 h-5"></i></button>
                         <p id="resPassage" class="text-blue-600 font-bold mb-2 text-lg"></p>
                         <h2 id="resTitle" class="text-2xl font-black text-slate-800 mb-2"></h2>
                         <p id="resContext" class="text-sm text-slate-500"></p>
                     </div>
 
-                    <!-- 0.5 성경 대역본 비교 -->
+                    <!-- 대역 비교 -->
                     <div id="sec-bible" class="relative bg-slate-50 rounded-xl shadow-sm border border-slate-200 p-6">
                         <div class="flex justify-between items-center mb-4 border-b pb-2">
                             <h3 class="text-lg font-bold flex items-center gap-2 text-slate-800"><i data-lucide="book-open-check" class="w-5 h-5 text-blue-700"></i>성경 본문 대역 비교</h3>
@@ -163,7 +137,7 @@
                         <div id="load-bible" class="section-loading hidden no-print"><div class="loader"></div></div>
                     </div>
 
-                    <!-- 0.8 역사적/지리적 배경 -->
+                    <!-- 배경 -->
                     <div id="sec-background" class="relative bg-stone-50 rounded-xl shadow-sm border border-stone-200 p-6">
                         <div class="flex justify-between items-center mb-4 border-b border-stone-200 pb-2">
                             <h3 class="text-lg font-bold flex items-center gap-2 text-stone-800"><i data-lucide="map" class="w-5 h-5 text-stone-600"></i>역사적/지리적 배경 이해</h3>
@@ -183,10 +157,10 @@
                             <span class="font-bold text-stone-800 text-sm flex items-center gap-1 mb-2"><i data-lucide="lightbulb" class="w-4 h-4"></i> 배경 지식을 활용한 설교 제언</span>
                             <p id="resBackgroundInsight" class="text-sm text-stone-900 leading-relaxed"></p>
                         </div>
-                        <div id="load-background" class="section-loading hidden no-print"><div class="loader text-stone-600"></div></div>
+                        <div id="load-background" class="section-loading hidden no-print"><div class="loader"></div></div>
                     </div>
 
-                    <!-- 1. 심층 원어적 주해 -->
+                    <!-- 원어 주해 -->
                     <div id="sec-exegesis" class="relative bg-white rounded-xl shadow-sm border border-slate-200 p-6">
                         <div class="flex justify-between items-center mb-4 border-b pb-2">
                             <h3 class="text-lg font-bold flex items-center gap-2 text-slate-800"><i data-lucide="languages" class="w-5 h-5 text-indigo-600"></i>1. 심층 원어 주해 및 설교 가이드</h3>
@@ -196,17 +170,17 @@
                         <div id="load-exegesis" class="section-loading hidden no-print"><div class="loader"></div></div>
                     </div>
 
-                    <!-- 2. 신학 서적 인용 -->
+                    <!-- 서적 인용 -->
                     <div id="sec-books" class="relative bg-amber-50 rounded-xl shadow-sm border border-amber-200 p-6">
                         <div class="flex justify-between items-center mb-4 border-b border-amber-200 pb-2">
                             <h3 class="text-lg font-bold flex items-center gap-2 text-amber-900"><i data-lucide="book-marked" class="w-5 h-5 text-amber-600"></i>2. 신학 서적/주석 인용</h3>
                             <button onclick="refreshSection('books')" class="refresh-btn no-print text-amber-500 hover:text-amber-700"><i data-lucide="refresh-cw" class="w-4 h-4"></i></button>
                         </div>
                         <div id="resBookReferences" class="space-y-4"></div>
-                        <div id="load-books" class="section-loading hidden no-print" style="background: rgba(254, 252, 232, 0.8);"><div class="loader" style="border-top-color: #d97706;"></div></div>
+                        <div id="load-books" class="section-loading hidden no-print" style="background:rgba(254,252,232,0.8);"><div class="loader" style="border-top-color:#d97706;"></div></div>
                     </div>
 
-                    <!-- 3 & 4. 설교 인사이트 -->
+                    <!-- 설교 인사이트 2칸 -->
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div id="sec-youtube" class="relative bg-white rounded-xl shadow-sm border border-slate-200 p-6">
                             <div class="flex justify-between items-center mb-4 border-b pb-2">
@@ -226,7 +200,7 @@
                         </div>
                     </div>
 
-                    <!-- 5. 설교 개요 -->
+                    <!-- 설교 개요 -->
                     <div id="sec-outline" class="relative bg-white rounded-xl shadow-sm border border-slate-200 p-6">
                         <div class="flex justify-between items-center mb-4 border-b pb-2">
                             <h3 class="text-lg font-bold flex items-center gap-2 text-slate-800"><i data-lucide="list-ordered" class="w-5 h-5 text-emerald-600"></i>5. 설교 개요</h3>
@@ -240,7 +214,7 @@
                         <div id="load-outline" class="section-loading hidden no-print"><div class="loader"></div></div>
                     </div>
 
-                    <!-- 6. 보너스 -->
+                    <!-- 보너스 -->
                     <div id="sec-bonus" class="relative bg-slate-800 text-white rounded-xl shadow-sm p-6 no-print">
                         <div class="flex justify-between items-center mb-4 border-b border-slate-600 pb-2">
                             <h3 class="text-lg font-bold flex items-center gap-2 text-white"><i data-lucide="gift" class="w-5 h-5 text-yellow-400"></i>추천 (예화/찬양/기도)</h3>
@@ -253,34 +227,28 @@
                                 <div><h4 class="text-yellow-400 font-semibold text-sm mb-2">마무리 기도</h4><p id="resPrayer" class="text-slate-300 text-sm italic leading-relaxed"></p></div>
                             </div>
                         </div>
-                        <div id="load-bonus" class="section-loading hidden no-print" style="background: rgba(30, 41, 59, 0.8);"><div class="loader"></div></div>
+                        <div id="load-bonus" class="section-loading hidden no-print" style="background:rgba(30,41,59,0.8);"><div class="loader"></div></div>
                     </div>
 
-                    <!-- 다운로드/복사/풀스크립트 -->
+                    <!-- 하단 액션 -->
                     <div class="bg-indigo-50 border border-indigo-100 rounded-xl p-6 mt-8 flex flex-col items-center gap-4 no-print">
                         <h3 class="font-bold text-indigo-900 text-lg">초안 저장 및 활용하기</h3>
                         <div class="flex flex-wrap justify-center gap-3 w-full">
-                            <button onclick="copyToClipboard('draftWrapper')" class="flex-1 max-w-[220px] flex items-center justify-center gap-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-medium py-2.5 rounded-lg shadow-sm transition-colors">
-                                <i data-lucide="copy" class="w-4 h-4"></i> 초안 복사 (한글/워드용)
-                            </button>
-                            <button onclick="printSection('draft')" class="flex-1 max-w-[220px] flex items-center justify-center gap-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-medium py-2.5 rounded-lg shadow-sm transition-colors">
-                                <i data-lucide="printer" class="w-4 h-4"></i> 초안 인쇄 (PDF)
-                            </button>
+                            <button onclick="copyToClipboard('draftWrapper')" class="flex-1 max-w-[220px] flex items-center justify-center gap-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-medium py-2.5 rounded-lg shadow-sm"><i data-lucide="copy" class="w-4 h-4"></i> 초안 복사</button>
+                            <button onclick="printSection('draft')" class="flex-1 max-w-[220px] flex items-center justify-center gap-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-medium py-2.5 rounded-lg shadow-sm"><i data-lucide="printer" class="w-4 h-4"></i> 초안 인쇄</button>
                         </div>
                         <div class="w-full h-px bg-indigo-200 my-2"></div>
-                        <p class="text-sm text-indigo-700 text-center mb-1">초안이 완성되었습니다! AI가 이 뼈대를 바탕으로 실제 강단용 <strong>완전한 설교문</strong>을 써드립니다.</p>
-                        <button id="btnGenerateFull" onclick="generateFullSermon()" class="w-full max-w-md flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-xl shadow-md transition-all hover:scale-[1.02]">
-                            <i data-lucide="file-signature" class="w-5 h-5"></i> 설교문 전체 (Full Script) 작성하기
-                        </button>
+                        <p class="text-sm text-indigo-700 text-center mb-1">초안 완성! AI가 이 뼈대로 <strong>완전한 설교문</strong>을 작성합니다.</p>
+                        <button id="btnGenerateFull" onclick="generateFullSermon()" class="w-full max-w-md flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-xl shadow-md transition-all hover:scale-[1.02]"><i data-lucide="file-signature" class="w-5 h-5"></i> 설교문 전체 (Full Script) 작성하기</button>
                     </div>
                 </div>
                 
-                <!-- ================= [ 풀스크립트 영역 ] ================= -->
+                <!-- 풀스크립트 -->
                 <div id="fullSermonWrapper" class="hidden space-y-6 mt-12 pt-8 border-t-2 border-slate-200">
                     <div id="load-fullSermon" class="hidden flex-col items-center justify-center py-12 bg-white rounded-xl border border-slate-200 shadow-sm no-print">
-                        <div class="loader loader-large text-indigo-600 mb-4 border-t-indigo-600"></div>
-                        <p class="text-indigo-800 font-medium text-lg text-center">개요와 주석을 바탕으로<br>전체 설교문을 집필하고 있습니다...</p>
-                        <p class="text-slate-500 text-sm mt-2">약 30~40초 정도 소요됩니다.</p>
+                        <div class="loader loader-large mb-4" style="border-top-color:#4f46e5;"></div>
+                        <p class="text-indigo-800 font-medium text-lg text-center">전체 설교문을 집필 중...</p>
+                        <p class="text-slate-500 text-sm mt-2">약 30~60초 소요</p>
                     </div>
                     <div id="fullSermonContent" class="hidden bg-white rounded-xl shadow-md border border-slate-200 p-8 md:p-12">
                         <div class="text-center mb-10 border-b border-slate-200 pb-8">
@@ -290,12 +258,8 @@
                         </div>
                         <div id="fsBody" class="text-slate-800 script-format"></div>
                         <div class="mt-12 pt-6 border-t border-slate-200 flex justify-end gap-3 no-print">
-                            <button onclick="copyToClipboard('fullSermonContent')" class="flex items-center gap-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-medium py-2 px-4 rounded-lg shadow-sm transition-colors">
-                                <i data-lucide="copy" class="w-4 h-4"></i> 설교문 복사 (한글/워드용)
-                            </button>
-                            <button onclick="printSection('script')" class="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg shadow-sm transition-colors">
-                                <i data-lucide="printer" class="w-4 h-4"></i> 설교문 인쇄 (PDF)
-                            </button>
+                            <button onclick="copyToClipboard('fullSermonContent')" class="flex items-center gap-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-medium py-2 px-4 rounded-lg shadow-sm"><i data-lucide="copy" class="w-4 h-4"></i> 설교문 복사</button>
+                            <button onclick="printSection('script')" class="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg shadow-sm"><i data-lucide="printer" class="w-4 h-4"></i> 설교문 인쇄</button>
                         </div>
                     </div>
                 </div>
@@ -303,7 +267,7 @@
         </div>
     </main>
 
-    <!-- Modal -->
+    <!-- 본문 추천 모달 -->
     <div id="passageModal" class="hidden fixed inset-0 z-50 flex items-center justify-center modal-bg px-4 no-print">
         <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden">
             <div class="bg-blue-600 px-6 py-4 flex justify-between items-center text-white">
@@ -311,17 +275,10 @@
                 <button onclick="closePassageModal()" class="hover:text-blue-200"><i data-lucide="x" class="w-5 h-5"></i></button>
             </div>
             <div class="p-6">
-                <div id="modalLoading" class="hidden flex-col items-center justify-center py-8">
-                    <div class="loader mb-3 text-blue-600"></div>
-                    <p class="text-sm text-slate-600">상황에 맞는 다른 본문을 찾고 있습니다...</p>
-                </div>
-                <div id="modalContent" class="space-y-3">
-                    <div id="candidateList" class="space-y-2"></div>
-                </div>
+                <div id="modalLoading" class="hidden flex-col items-center justify-center py-8"><div class="loader mb-3"></div><p class="text-sm text-slate-600">본문을 찾고 있습니다...</p></div>
+                <div id="modalContent" class="space-y-3"><div id="candidateList" class="space-y-2"></div></div>
             </div>
-            <div class="bg-slate-50 px-6 py-4 flex justify-end">
-                <button onclick="closePassageModal()" class="text-slate-500 hover:text-slate-700 text-sm font-medium px-4 py-2">취소</button>
-            </div>
+            <div class="bg-slate-50 px-6 py-4 flex justify-end"><button onclick="closePassageModal()" class="text-slate-500 hover:text-slate-700 text-sm font-medium px-4 py-2">취소</button></div>
         </div>
     </div>
 
@@ -329,263 +286,222 @@
         lucide.createIcons();
         let currentSermonState = { passage: "", title: "", context: "", fullDataRaw: null };
 
-        // 페이지 로드 시 로컬 스토리지에서 API 키 불러오기
+        // =============================================
+        //  모델 체인 — 실제 사용 가능한 모델만 (2026년 7월 기준)
+        //  1순위: gemini-3.5-flash (최신, 무료, 일일한도 있음)
+        //  2순위: gemini-3.1-flash-lite (무료, 한도 넉넉, 가벼움)
+        // =============================================
+        const GEMINI_MODELS = [
+            { id: "gemini-3.5-flash",      label: "Gemini 3.5 Flash" },
+            { id: "gemini-3.1-flash-lite", label: "Gemini 3.1 Flash-Lite" }
+        ];
+        const PUTER_MODELS = [
+            { id: "google/gemini-3.5-flash",      label: "Gemini 3.5 Flash" },
+            { id: "google/gemini-3.1-flash-lite",  label: "Gemini 3.1 Flash-Lite" }
+        ];
+
+        // =============================================
+        //  초기화
+        // =============================================
         document.addEventListener('DOMContentLoaded', () => {
-            const savedKey = localStorage.getItem('geminiApiKey');
-            if(savedKey) document.getElementById('geminiApiKey').value = savedKey;
-            const savedMode = localStorage.getItem('apiMode');
-            if(savedMode) {
-                document.querySelector(`input[name="apiMode"][value="${savedMode}"]`).checked = true;
-                toggleApiMode();
-            }
+            const k = localStorage.getItem('geminiApiKey');
+            if (k) document.getElementById('geminiApiKey').value = k;
+            const m = localStorage.getItem('apiMode');
+            if (m) { const r = document.querySelector(`input[name="apiMode"][value="${m}"]`); if(r) r.checked = true; }
+            toggleApiMode();
         });
 
-        function getApiMode() {
-            return document.querySelector('input[name="apiMode"]:checked').value;
-        }
-
+        function getApiMode() { return document.querySelector('input[name="apiMode"]:checked').value; }
         function toggleApiMode() {
             const mode = getApiMode();
             localStorage.setItem('apiMode', mode);
             document.getElementById('geminiKeySection').classList.toggle('hidden', mode !== 'gemini');
         }
-
-        function getApiKey() {
-            const key = document.getElementById('geminiApiKey').value.trim();
-            if(key) localStorage.setItem('geminiApiKey', key);
-            return key;
+        function getApiKey() { const k = document.getElementById('geminiApiKey').value.trim(); if(k) localStorage.setItem('geminiApiKey', k); return k; }
+        function setContext(t) { document.getElementById('context').value = t; }
+        const delay = ms => new Promise(r => setTimeout(r, ms));
+        function fmt(t) { return t ? t.replace(/\n/g, '<br>') : ''; }
+        function updateModelDisplay(name) {
+            document.getElementById('currentModelInfo').classList.remove('hidden');
+            document.getElementById('currentModelName').textContent = name;
         }
-
-        function setContext(text) { document.getElementById('context').value = text; }
-        const delay = ms => new Promise(res => setTimeout(res, ms));
-        function formatText(text) { return text ? text.replace(/\n/g, '<br>') : ''; }
-        
-        function setSectionLoading(sectionId, isLoading) {
-            const loader = document.getElementById(`load-${sectionId}`);
-            if(loader) isLoading ? loader.classList.replace('hidden', 'flex') : loader.classList.replace('flex', 'hidden');
+        function setSectionLoading(id, on) {
+            const el = document.getElementById(`load-${id}`);
+            if(el) on ? el.classList.replace('hidden','flex') : el.classList.replace('flex','hidden');
         }
-        
-        function setButtonsDisabled(disabled) {
-            document.querySelectorAll('.refresh-btn, #btnGenerateFull').forEach(btn => btn.disabled = disabled);
-            const genBtn = document.getElementById('generateBtn');
-            genBtn.disabled = disabled;
-            disabled ? genBtn.classList.add('opacity-70', 'cursor-not-allowed') : genBtn.classList.remove('opacity-70', 'cursor-not-allowed');
+        function setButtonsDisabled(d) {
+            document.querySelectorAll('.refresh-btn, #btnGenerateFull').forEach(b => b.disabled = d);
+            const g = document.getElementById('generateBtn'); g.disabled = d;
+            d ? g.classList.add('opacity-70','cursor-not-allowed') : g.classList.remove('opacity-70','cursor-not-allowed');
         }
-
-        function copyToClipboard(elementId) {
-            const el = document.getElementById(elementId);
-            const range = document.createRange();
+        function copyToClipboard(id) {
+            const el = document.getElementById(id), range = document.createRange();
             range.selectNodeContents(el);
-            const sel = window.getSelection();
-            sel.removeAllRanges();
-            sel.addRange(range);
-            try {
-                document.execCommand('copy');
-                alert('내용이 클립보드에 성공적으로 복사되었습니다!\n\n아래아 한글(HWP)이나 MS Word를 열고 "붙여넣기(Ctrl+V)" 하시면 서식이 그대로 복사됩니다.');
-            } catch (err) {
-                alert('복사 중 오류가 발생했습니다. 직접 드래그해서 복사해주세요.');
-            }
+            const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
+            try { document.execCommand('copy'); alert('클립보드에 복사 완료!\n한글/Word에서 Ctrl+V로 붙여넣기 하세요.'); } catch(e) { alert('복사 실패. 직접 드래그해서 복사해주세요.'); }
             sel.removeAllRanges();
         }
-
         function printSection(mode) {
-            document.body.classList.remove('print-mode-draft', 'print-mode-script');
+            document.body.classList.remove('print-mode-draft','print-mode-script');
             document.body.classList.add(`print-mode-${mode}`);
             window.print();
-            setTimeout(() => { document.body.classList.remove(`print-mode-${mode}`); }, 1000);
+            setTimeout(() => document.body.classList.remove(`print-mode-${mode}`), 1000);
         }
 
-        // ============================
-        //  프롬프트 생성 함수
-        // ============================
-        function buildPrompt(targetSection, passageInput, contextInput) {
-            const sysInst = "당신은 개혁주의/복음주의 신학 기반의 탁월한 설교자이자 목회 보조 AI입니다. 정보 전달을 넘어 목회적/설교적 가이드를 확실히 제공합니다. 반드시 유효한 JSON만 출력하세요. 마크다운 코드블록 없이 순수 JSON만 출력하세요.";
-            let prompt = "";
-            let jsonStructureHint = "";
-
-            if (targetSection === 'all') {
-                jsonStructureHint = `{
-  "passageUsed": "사용된 성경 본문",
-  "title": "설교 제목",
-  "bibleTexts": [{"verseNum":"절번호","koreanRev":"개역개정","koreanNew":"새번역","english":"영어(NIV 등)"}],
-  "bibleTranslationInsight": "대역 비교 통찰",
-  "background": {"historicalContext":"역사적 배경","geographicalContext":"지리적 배경","mapSearchQuery":"이미지 검색어(영문)","mapCaption":"이미지 설명","preachingInsight":"설교 적용"},
-  "exegesis": [{"word":"한글 단어","originalText":"원어","pronunciation":"발음","language":"히브리어/헬라어","meaning":"의미 설명","crossReferences":["참조구절1","참조구절2"],"preachingInsight":"설교 적용 포인트"}],
-  "bookReferences": [{"author":"저자","bookTitle":"책제목","quote":"인용문","application":"설교 적용"}],
-  "youtubeInsights": ["설교적 접근 가이드 1","설교적 접근 가이드 2","설교적 접근 가이드 3"],
-  "aiInsights": ["현대 적용 1","현대 적용 2","현대 적용 3"],
-  "outlineIntro": "서론 내용",
-  "outlineBody": ["본론 1","본론 2","본론 3"],
-  "outlineConclusion": "결론 내용",
-  "illustration": "예화 내용",
-  "hymns": ["찬양1","찬양2","찬양3"],
-  "prayer": "마무리 기도문"
-}`;
-                prompt = `${sysInst}
-
-설교 초안 작성. 본문: ${passageInput||'상황에 맞게 추천'}, 상황: ${contextInput||'일반주일'}.
-
-[중요 지시사항]
-1. bibleTranslationInsight: 개역개정과 다른 번역의 뉘앙스 차이를 성도에게 어떻게 설명할지 가이드.
-2. background 안의 preachingInsight: 역사/지리적 배경을 오늘날 성도 삶에 어떻게 적용할지 가이드.
-3. exegesis 안의 preachingInsight: 원어 의미를 성도들에게 어떻게 설명/적용할지 구체적 가이드 필수.
-4. youtubeInsights, aiInsights: "이 방향으로 설교 전개해 보세요" 식의 코칭 멘트.
-5. bibleTexts는 본문의 각 절마다 개역개정, 새번역, 영어(NIV) 3가지 대역을 제공.
-6. exegesis는 핵심 원어 단어 2-3개를 깊이 있게 분석.
-7. bookReferences는 실제 존재하는 신학 서적/주석에서 2-3개 인용.
-
-아래 JSON 구조를 정확히 따라 출력하세요. 마크다운 코드블록(\`\`\`) 없이 순수 JSON만 출력:
-${jsonStructureHint}`;
-            } else if (targetSection === 'passageCandidates') {
-                prompt = `${sysInst}
-
-현재 상황(${contextInput || '일반 주일'})에 맞는 성경 본문 후보 3가지 제안. 기존 본문(${currentSermonState.passage}) 제외.
-
-아래 JSON 구조를 정확히 따라 출력. 마크다운 코드블록 없이 순수 JSON만:
-{"candidates":[{"passage":"성경구절","title":"설교제목","reason":"추천이유"}]}`;
-            } else if (targetSection === 'fullScript') {
-                prompt = `${sysInst}
-
-작성된 '설교 개요 및 주석 데이터'를 바탕으로 실제 강단에서 선포하는 구어체 형식의 "완전한 설교문(Full Script)" 작성.
-본문: ${currentSermonState.passage}, 제목: ${currentSermonState.title}
-데이터: ${JSON.stringify(currentSermonState.fullDataRaw)}
-
-[지시사항]
-1. 경어체(하십시오/합시다 체) 사용. 서론, 본론(대지별), 결론이 물 흐르듯 전개. 설교 시간 20-30분 분량의 풍부한 텍스트.
-2. 대역본 비교 통찰, 배경 지식 적용점, 원어 의미, 예화를 자연스럽게 설교문 안에 녹여낼 것.
-3. HTML 태그(<p>, <br>, <strong>) 사용.
-
-아래 JSON 구조를 정확히 따라 출력. 마크다운 코드블록 없이 순수 JSON만:
-{"scriptHtml":"<p>설교문 HTML 내용</p>"}`;
-            } else {
-                // 개별 섹션 새로고침
-                const sectionHints = {
-                    bible: `{"bibleTexts":[{"verseNum":"","koreanRev":"","koreanNew":"","english":""}],"bibleTranslationInsight":""}`,
-                    background: `{"background":{"historicalContext":"","geographicalContext":"","mapSearchQuery":"","mapCaption":"","preachingInsight":""}}`,
-                    exegesis: `{"exegesis":[{"word":"","originalText":"","pronunciation":"","language":"","meaning":"","crossReferences":[],"preachingInsight":""}]}`,
-                    books: `{"bookReferences":[{"author":"","bookTitle":"","quote":"","application":""}]}`,
-                    youtube: `{"youtubeInsights":["","",""]}`,
-                    ai: `{"aiInsights":["","",""]}`,
-                    outline: `{"outlineIntro":"","outlineBody":["","",""],"outlineConclusion":""}`,
-                    bonus: `{"illustration":"","hymns":["","",""],"prayer":""}`
-                };
-                prompt = `${sysInst}
-
-문맥(본문:${currentSermonState.passage}, 제목:${currentSermonState.title}). '${targetSection}' 부분을 새롭게 작성. 설교적 관점 강화.
-
-아래 JSON 구조를 정확히 따라 출력. 마크다운 코드블록 없이 순수 JSON만:
-${sectionHints[targetSection] || '{}'}`;
-            }
-            return prompt;
+        // =============================================
+        //  JSON 안전 파싱
+        // =============================================
+        function safeJSON(text) {
+            let s = text.replace(/```json\s*/gi,'').replace(/```\s*/g,'').trim();
+            const i1 = s.indexOf('{'), i2 = s.indexOf('[');
+            let start = -1;
+            if (i1===-1 && i2===-1) throw new Error('JSON 없음');
+            if (i1===-1) start=i2; else if (i2===-1) start=i1; else start=Math.min(i1,i2);
+            s = s.substring(start);
+            const e1 = s.lastIndexOf('}'), e2 = s.lastIndexOf(']');
+            const end = Math.max(e1,e2);
+            if (end===-1) throw new Error('JSON 끝 없음');
+            s = s.substring(0, end+1);
+            return JSON.parse(s);
         }
 
-        // ============================
-        //  Puter.js를 통한 AI 호출
-        // ============================
-        async function callPuterAI(prompt, retries = 3) {
-            for (let i = 0; i <= retries; i++) {
-                try {
-                    const response = await puter.ai.chat(prompt, {
-                        model: 'gemini-2.5-flash'
-                    });
-                    // response가 객체일 수 있고 문자열일 수 있음
-                    let text = typeof response === 'string' ? response : (response?.message?.content || response?.text || response?.toString() || '');
-                    // 마크다운 코드블록 제거
-                    text = text.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
-                    return JSON.parse(text);
-                } catch (error) {
-                    console.error(`Puter AI 시도 ${i+1} 실패:`, error);
-                    if (i === retries) throw new Error(`AI 응답 처리 실패: ${error.message}. 잠시 후 다시 시도해주세요.`);
-                    await delay(1000 * Math.pow(2, i));
-                }
-            }
-        }
-
-        // ============================
-        //  Gemini 직접 API 호출
-        // ============================
-        async function callGeminiDirect(prompt, retries = 3) {
-            const userApiKey = getApiKey();
-            if (!userApiKey) throw new Error("API 키가 입력되지 않았습니다.");
-
-            // 현재 사용 가능한 모델 사용
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${userApiKey}`;
-
-            const payload = {
-                contents: [{ parts: [{ text: prompt }] }],
-                generationConfig: {
-                    responseMimeType: "application/json"
-                }
+        // =============================================
+        //  프롬프트
+        // =============================================
+        function buildPrompt(section, passage, context) {
+            const sys = `당신은 개혁주의/복음주의 신학 기반의 탁월한 설교자 AI입니다. 반드시 순수 JSON만 출력하세요. 마크다운 코드블록(\`\`\`json) 절대 금지. { 로 시작하고 } 로 끝나는 JSON만 출력하세요.`;
+            const hints = {
+                all: `{"passageUsed":"성경본문","title":"설교제목","bibleTexts":[{"verseNum":"절","koreanRev":"개역개정","koreanNew":"새번역","english":"NIV"}],"bibleTranslationInsight":"번역비교통찰","background":{"historicalContext":"역사적배경","geographicalContext":"지리적배경","mapSearchQuery":"영문이미지검색어","mapCaption":"이미지설명","preachingInsight":"설교적용"},"exegesis":[{"word":"한글단어","originalText":"원어","pronunciation":"발음","language":"히브리어/헬라어","meaning":"의미설명","crossReferences":["참조1"],"preachingInsight":"설교적용포인트"}],"bookReferences":[{"author":"저자","bookTitle":"책제목","quote":"인용문","application":"설교적용"}],"youtubeInsights":["설교접근1","접근2","접근3"],"aiInsights":["현대적용1","적용2","적용3"],"outlineIntro":"서론","outlineBody":["본론1","본론2","본론3"],"outlineConclusion":"결론","illustration":"예화","hymns":["찬양1","찬양2"],"prayer":"기도문"}`,
+                bible: `{"bibleTexts":[{"verseNum":"","koreanRev":"","koreanNew":"","english":""}],"bibleTranslationInsight":""}`,
+                background: `{"background":{"historicalContext":"","geographicalContext":"","mapSearchQuery":"","mapCaption":"","preachingInsight":""}}`,
+                exegesis: `{"exegesis":[{"word":"","originalText":"","pronunciation":"","language":"","meaning":"","crossReferences":[],"preachingInsight":""}]}`,
+                books: `{"bookReferences":[{"author":"","bookTitle":"","quote":"","application":""}]}`,
+                youtube: `{"youtubeInsights":["","",""]}`,
+                ai: `{"aiInsights":["","",""]}`,
+                outline: `{"outlineIntro":"","outlineBody":["","",""],"outlineConclusion":""}`,
+                bonus: `{"illustration":"","hymns":["","",""],"prayer":""}`,
+                passageCandidates: `{"candidates":[{"passage":"","title":"","reason":""}]}`,
+                fullScript: `{"scriptHtml":"<p>설교문</p>"}`
             };
+            let msg = "";
+            if (section === 'all') {
+                msg = `${sys}\n\n설교 초안 전체.\n본문: ${passage||'상황에 맞게 추천'}\n상황: ${context||'일반주일'}\n\n[지시]\n1. bibleTexts: 각 절 개역개정/새번역/NIV\n2. bibleTranslationInsight: 번역 차이의 설교적 활용법\n3. background.preachingInsight: 배경의 오늘날 적용\n4. exegesis.preachingInsight: 원어의 구체적 설교 적용\n5. 설교적 코칭 멘트\n6. exegesis 원어 2-3개\n7. bookReferences 실존 신학서적 2-3개\n\nJSON:\n${hints.all}`;
+            } else if (section === 'passageCandidates') {
+                msg = `${sys}\n\n상황(${context||'일반 주일'})에 맞는 성경 본문 후보 3가지. 기존(${currentSermonState.passage}) 제외.\n\nJSON:\n${hints.passageCandidates}`;
+            } else if (section === 'fullScript') {
+                msg = `${sys}\n\n아래 데이터 바탕으로 강단용 구어체 설교문(Full Script) 작성.\n본문: ${currentSermonState.passage}\n제목: ${currentSermonState.title}\n데이터: ${JSON.stringify(currentSermonState.fullDataRaw)}\n\n[지시] 경어체. 서론→본론→결론. 20-30분. 대역본/배경/원어/예화 녹여넣기. HTML(<p><br><strong>) 사용.\n\nJSON:\n${hints.fullScript}`;
+            } else {
+                msg = `${sys}\n\n문맥(본문:${currentSermonState.passage}, 제목:${currentSermonState.title}).\n'${section}' 부분 새롭게 작성. 설교적 관점 강화.\n\nJSON:\n${hints[section]||'{}'}`;
+            }
+            return msg;
+        }
 
-            for (let i = 0; i <= retries; i++) {
+        // =============================================
+        //  Gemini 직접 호출 — 자동 모델 전환
+        // =============================================
+        async function callGeminiAPI(prompt) {
+            const key = getApiKey();
+            if (!key) throw new Error("API 키를 입력해주세요.");
+
+            const errors = [];
+            for (let i = 0; i < GEMINI_MODELS.length; i++) {
+                const m = GEMINI_MODELS[i];
                 try {
-                    const response = await fetch(url, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-                    if (!response.ok) {
-                        const errData = await response.json().catch(() => ({}));
-                        const errMsg = errData.error?.message || `API 오류 (${response.status})`;
-                        // 모델을 못 찾으면 대체 모델 시도
-                        if (response.status === 404 && i === 0) {
-                            console.warn('gemini-2.5-flash 실패, gemini-2.5-pro 시도...');
-                            const altUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${userApiKey}`;
-                            const altResponse = await fetch(altUrl, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify(payload)
-                            });
-                            if (altResponse.ok) {
-                                const altData = await altResponse.json();
-                                let text = altData.candidates[0].content.parts[0].text;
-                                text = text.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
-                                return JSON.parse(text);
-                            }
+                    console.log(`[Gemini] ${m.label} 시도...`);
+                    document.getElementById('loadingSubText').textContent = `${m.label} 모델로 생성 중...`;
+
+                    const res = await fetch(
+                        `https://generativelanguage.googleapis.com/v1beta/models/${m.id}:generateContent?key=${key}`,
+                        { method: 'POST', headers: {'Content-Type':'application/json'},
+                          body: JSON.stringify({
+                              contents: [{parts:[{text:prompt}]}],
+                              generationConfig: { responseMimeType: "application/json" }
+                          })
                         }
-                        throw new Error(errMsg);
+                    );
+
+                    if (!res.ok) {
+                        const err = await res.json().catch(()=>({}));
+                        const msg = err.error?.message || `HTTP ${res.status}`;
+                        console.warn(`[Gemini] ${m.label} 실패: ${msg}`);
+                        errors.push(`${m.label}: ${msg}`);
+                        // 다음 모델 시도 가능한 에러들
+                        if (res.status===404 || res.status===429 || msg.includes('no longer available') || msg.includes('quota') || msg.includes('RESOURCE_EXHAUSTED')) {
+                            continue;
+                        }
+                        throw new Error(msg); // 다른 에러는 바로 중단
                     }
-                    const data = await response.json();
-                    let text = data.candidates[0].content.parts[0].text;
-                    text = text.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
-                    return JSON.parse(text);
-                } catch (error) {
-                    if (i === retries) throw error;
-                    await delay(1000 * Math.pow(2, i));
+
+                    const data = await res.json();
+                    const text = data.candidates[0].content.parts[0].text;
+                    const parsed = safeJSON(text);
+                    updateModelDisplay(m.label);
+                    return parsed;
+
+                } catch (e) {
+                    errors.push(`${m.label}: ${e.message}`);
+                    if (i < GEMINI_MODELS.length - 1 && (
+                        e.message.includes('no longer available') || e.message.includes('404') ||
+                        e.message.includes('429') || e.message.includes('quota') ||
+                        e.message.includes('RESOURCE_EXHAUSTED') || e.message.includes('not found')
+                    )) continue;
+                    if (i === GEMINI_MODELS.length - 1) break;
+                }
+            }
+            throw new Error(`사용 가능한 모델이 없습니다.\n${errors.join('\n')}`);
+        }
+
+        // =============================================
+        //  Puter.js 호출 — 자동 모델 전환
+        // =============================================
+        async function callPuterAPI(prompt) {
+            const errors = [];
+            for (let i = 0; i < PUTER_MODELS.length; i++) {
+                const m = PUTER_MODELS[i];
+                try {
+                    console.log(`[Puter] ${m.label} 시도...`);
+                    document.getElementById('loadingSubText').textContent = `${m.label} 모델로 생성 중...`;
+
+                    const response = await puter.ai.chat(prompt, { model: m.id });
+                    let text = typeof response === 'string' ? response
+                        : (response?.message?.content || response?.text || JSON.stringify(response));
+                    const parsed = safeJSON(text);
+                    updateModelDisplay(m.label);
+                    return parsed;
+
+                } catch (e) {
+                    console.warn(`[Puter] ${m.label} 실패:`, e.message);
+                    errors.push(`${m.label}: ${e.message}`);
+                    if (i < PUTER_MODELS.length - 1) { await delay(500); continue; }
+                }
+            }
+            throw new Error(`Puter 모델 모두 실패.\n${errors.join('\n')}`);
+        }
+
+        // =============================================
+        //  통합 호출 (재시도 포함)
+        // =============================================
+        async function callAI(section, passage, context) {
+            const prompt = buildPrompt(section, passage, context);
+            const mode = getApiMode();
+            for (let attempt = 0; attempt < 2; attempt++) {
+                try {
+                    return mode === 'puter' ? await callPuterAPI(prompt) : await callGeminiAPI(prompt);
+                } catch (e) {
+                    if (attempt === 0 && e.message.includes('JSON')) { await delay(1000); continue; }
+                    throw e;
                 }
             }
         }
 
-        // ============================
-        //  통합 AI 호출 함수
-        // ============================
-        async function callAI(targetSection, passageInput, contextInput) {
-            const prompt = buildPrompt(targetSection, passageInput, contextInput);
-            const mode = getApiMode();
+        // =============================================
+        //  렌더링
+        // =============================================
+        function renderData(data, section) {
+            const popList = (id, arr) => { const el=document.getElementById(id); el.innerHTML=''; if(!arr)return; arr.forEach(x=>{const li=document.createElement('li'); li.innerHTML=fmt(x); el.appendChild(li);}); };
 
-            if (mode === 'puter') {
-                return await callPuterAI(prompt);
-            } else {
-                return await callGeminiDirect(prompt);
-            }
-        }
-
-        // --- UI Rendering (기존과 동일) ---
-        function renderData(data, targetSection) {
-            const populateList = (id, arr) => {
-                const el = document.getElementById(id);
-                el.innerHTML = '';
-                if(!arr) return;
-                arr.forEach(item => {
-                    const li = document.createElement('li');
-                    li.innerHTML = formatText(item);
-                    el.appendChild(li);
-                });
-            };
-
-            if (targetSection === 'all') {
-                currentSermonState.fullDataRaw = data; 
+            if (section === 'all') {
+                currentSermonState.fullDataRaw = data;
                 document.getElementById('resPassage').textContent = `본문: ${data.passageUsed}`;
                 document.getElementById('resTitle').textContent = `"${data.title}"`;
                 currentSermonState.passage = data.passageUsed;
@@ -595,180 +511,153 @@ ${sectionHints[targetSection] || '{}'}`;
                 document.getElementById('fullSermonWrapper').classList.add('hidden');
             }
 
-            if ((targetSection === 'all' || targetSection === 'bible') && data.bibleTexts) {
-                const bibleEl = document.getElementById('resBibleTexts'); bibleEl.innerHTML = '';
-                data.bibleTexts.forEach(verse => {
-                    bibleEl.innerHTML += `<div class="bg-white border border-slate-200 rounded-lg p-4"><div class="font-bold text-blue-800 text-sm mb-2 border-b border-slate-100 pb-1">${verse.verseNum}</div><div class="space-y-2 text-sm"><div class="flex gap-2"><span class="w-16 flex-shrink-0 font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded text-xs text-center self-start mt-0.5">개역개정</span><p class="text-slate-800 font-medium">${verse.koreanRev}</p></div><div class="flex gap-2"><span class="w-16 flex-shrink-0 font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded text-xs text-center self-start mt-0.5">새번역</span><p class="text-blue-800">${verse.koreanNew}</p></div><div class="flex gap-2"><span class="w-16 flex-shrink-0 font-semibold text-slate-400 border border-slate-200 px-2 py-0.5 rounded text-xs text-center self-start mt-0.5">ENG</span><p class="text-slate-500 italic">${verse.english}</p></div></div></div>`;
+            if ((section==='all'||section==='bible') && data.bibleTexts) {
+                const el = document.getElementById('resBibleTexts'); el.innerHTML='';
+                data.bibleTexts.forEach(v => {
+                    el.innerHTML += `<div class="bg-white border border-slate-200 rounded-lg p-4"><div class="font-bold text-blue-800 text-sm mb-2 border-b border-slate-100 pb-1">${v.verseNum}</div><div class="space-y-2 text-sm"><div class="flex gap-2"><span class="w-16 flex-shrink-0 font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded text-xs text-center self-start mt-0.5">개역개정</span><p class="text-slate-800 font-medium">${v.koreanRev}</p></div><div class="flex gap-2"><span class="w-16 flex-shrink-0 font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded text-xs text-center self-start mt-0.5">새번역</span><p class="text-blue-800">${v.koreanNew}</p></div><div class="flex gap-2"><span class="w-16 flex-shrink-0 font-semibold text-slate-400 border border-slate-200 px-2 py-0.5 rounded text-xs text-center self-start mt-0.5">ENG</span><p class="text-slate-500 italic">${v.english}</p></div></div></div>`;
                 });
-                if(data.bibleTranslationInsight) {
+                if(data.bibleTranslationInsight){
                     document.getElementById('resBibleInsightWrapper').classList.remove('hidden');
-                    document.getElementById('resBibleInsight').innerHTML = formatText(data.bibleTranslationInsight);
+                    document.getElementById('resBibleInsight').innerHTML = fmt(data.bibleTranslationInsight);
                 }
             }
 
-            if ((targetSection === 'all' || targetSection === 'background') && data.background) {
-                document.getElementById('resHistBackground').innerHTML = formatText(data.background.historicalContext);
-                document.getElementById('resGeoBackground').innerHTML = formatText(data.background.geographicalContext);
-                document.getElementById('resImgCaption').textContent = data.background.mapCaption;
-                const query = data.background.mapSearchQuery + ' ancient biblical landscape cinematic lighting';
-                const imgSearchUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(query)}?width=400&height=300&nologo=true`;
-                document.getElementById('resBackgroundImg').innerHTML = `<img src="${imgSearchUrl}" alt="${data.background.mapCaption}" class="w-full h-full object-cover relative z-10 rounded shadow-sm" onload="this.style.opacity=1" style="opacity:0; transition: opacity 0.5s;">`;
-                if(data.background.preachingInsight) {
+            if ((section==='all'||section==='background') && data.background) {
+                document.getElementById('resHistBackground').innerHTML = fmt(data.background.historicalContext);
+                document.getElementById('resGeoBackground').innerHTML = fmt(data.background.geographicalContext);
+                document.getElementById('resImgCaption').textContent = data.background.mapCaption||'';
+                if(data.background.mapSearchQuery){
+                    const q = data.background.mapSearchQuery+' ancient biblical landscape cinematic lighting';
+                    document.getElementById('resBackgroundImg').innerHTML = `<img src="https://image.pollinations.ai/prompt/${encodeURIComponent(q)}?width=400&height=300&nologo=true" alt="${data.background.mapCaption||''}" class="w-full h-full object-cover rounded shadow-sm" onload="this.style.opacity=1" style="opacity:0;transition:opacity 0.5s;">`;
+                }
+                if(data.background.preachingInsight){
                     document.getElementById('resBackgroundInsightWrapper').classList.remove('hidden');
-                    document.getElementById('resBackgroundInsight').innerHTML = formatText(data.background.preachingInsight);
+                    document.getElementById('resBackgroundInsight').innerHTML = fmt(data.background.preachingInsight);
                 }
             }
 
-            if ((targetSection === 'all' || targetSection === 'exegesis') && data.exegesis) {
-                const exEl = document.getElementById('resExegesis'); exEl.innerHTML = '';
+            if ((section==='all'||section==='exegesis') && data.exegesis) {
+                const el = document.getElementById('resExegesis'); el.innerHTML='';
                 data.exegesis.forEach(item => {
-                    exEl.innerHTML += `
-                        <div class="bg-indigo-50/50 p-5 rounded-lg border border-indigo-100 mb-4 last:mb-0">
-                            <div class="flex flex-col mb-3 border-b border-indigo-100 pb-3">
-                                <div class="flex flex-wrap items-center gap-3 mb-1">
-                                    <span class="text-lg font-bold text-indigo-900">${item.word}</span>
-                                    <span class="text-xs font-semibold bg-indigo-100 text-indigo-700 px-2 py-1 rounded-full">${item.language}</span>
-                                </div>
-                                <div class="flex items-center gap-3">
-                                    <span class="text-2xl font-original text-slate-800">${item.originalText}</span>
-                                    <span class="text-base font-medium text-slate-500 bg-white px-2 border border-slate-200 rounded shadow-sm">[${item.pronunciation}]</span>
-                                </div>
-                            </div>
-                            <p class="text-sm text-slate-700 leading-relaxed mb-4">${formatText(item.meaning)}</p>
-                            <div class="mb-4 bg-indigo-100/50 p-3 rounded-md border border-indigo-200">
-                                <span class="font-bold text-indigo-800 text-sm flex items-center gap-1 mb-1"><i data-lucide="lightbulb" class="w-4 h-4"></i> 설교 적용 포인트</span>
-                                <p class="text-sm text-indigo-900 leading-relaxed">${formatText(item.preachingInsight)}</p>
-                            </div>
-                            <div class="bg-white p-3 rounded-md border border-indigo-50 shadow-sm">
-                                <span class="text-xs font-bold text-indigo-800 flex items-center gap-1 mb-2"><i data-lucide="book-open" class="w-3 h-3"></i> 타 성경 본문 용례</span>
-                                <ul class="text-sm text-slate-600 space-y-2">${(item.crossReferences||[]).map(ref => `<li class="flex items-start gap-2"><span class="text-indigo-400 mt-0.5">•</span><span>${ref}</span></li>`).join('')}</ul>
-                            </div>
-                        </div>`;
+                    el.innerHTML += `<div class="bg-indigo-50/50 p-5 rounded-lg border border-indigo-100 mb-4"><div class="flex flex-col mb-3 border-b border-indigo-100 pb-3"><div class="flex flex-wrap items-center gap-3 mb-1"><span class="text-lg font-bold text-indigo-900">${item.word}</span><span class="text-xs font-semibold bg-indigo-100 text-indigo-700 px-2 py-1 rounded-full">${item.language}</span></div><div class="flex items-center gap-3"><span class="text-2xl font-original text-slate-800">${item.originalText}</span><span class="text-base font-medium text-slate-500 bg-white px-2 border border-slate-200 rounded shadow-sm">[${item.pronunciation}]</span></div></div><p class="text-sm text-slate-700 leading-relaxed mb-4">${fmt(item.meaning)}</p><div class="mb-4 bg-indigo-100/50 p-3 rounded-md border border-indigo-200"><span class="font-bold text-indigo-800 text-sm flex items-center gap-1 mb-1"><i data-lucide="lightbulb" class="w-4 h-4"></i> 설교 적용 포인트</span><p class="text-sm text-indigo-900 leading-relaxed">${fmt(item.preachingInsight)}</p></div><div class="bg-white p-3 rounded-md border border-indigo-50 shadow-sm"><span class="text-xs font-bold text-indigo-800 flex items-center gap-1 mb-2"><i data-lucide="book-open" class="w-3 h-3"></i> 타 성경 본문 용례</span><ul class="text-sm text-slate-600 space-y-2">${(item.crossReferences||[]).map(r=>`<li class="flex items-start gap-2"><span class="text-indigo-400 mt-0.5">•</span><span>${r}</span></li>`).join('')}</ul></div></div>`;
                 });
             }
 
-            if ((targetSection === 'all' || targetSection === 'books') && data.bookReferences) {
-                const el = document.getElementById('resBookReferences'); el.innerHTML = '';
+            if ((section==='all'||section==='books') && data.bookReferences) {
+                const el = document.getElementById('resBookReferences'); el.innerHTML='';
                 data.bookReferences.forEach(ref => {
                     el.innerHTML += `<div class="bg-white p-4 rounded-lg border border-amber-100 shadow-sm"><div class="flex items-center gap-2 mb-2"><i data-lucide="book" class="w-4 h-4 text-amber-600"></i><span class="font-bold text-slate-800">${ref.bookTitle}</span><span class="text-sm text-slate-500"> - ${ref.author}</span></div><blockquote class="border-l-4 border-amber-300 pl-3 my-3 text-slate-600 italic text-sm leading-relaxed">"${ref.quote}"</blockquote><p class="text-xs text-amber-800 bg-amber-100/50 p-2 rounded"><strong>설교 가이드:</strong> ${ref.application}</p></div>`;
                 });
             }
-            if ((targetSection === 'all' || targetSection === 'youtube') && data.youtubeInsights) populateList('resYoutubeInsights', data.youtubeInsights);
-            if ((targetSection === 'all' || targetSection === 'ai') && data.aiInsights) populateList('resAiInsights', data.aiInsights);
-            if ((targetSection === 'all' || targetSection === 'outline') && data.outlineIntro) {
-                document.getElementById('resOutlineIntro').innerHTML = formatText(data.outlineIntro);
-                const bodyEl = document.getElementById('resOutlineBody'); bodyEl.innerHTML = '';
-                (data.outlineBody||[]).forEach(item => { bodyEl.innerHTML += `<li class="mb-3">${formatText(item)}</li>`; });
-                document.getElementById('resOutlineConclusion').innerHTML = formatText(data.outlineConclusion);
+
+            if ((section==='all'||section==='youtube') && data.youtubeInsights) popList('resYoutubeInsights', data.youtubeInsights);
+            if ((section==='all'||section==='ai') && data.aiInsights) popList('resAiInsights', data.aiInsights);
+            if ((section==='all'||section==='outline') && data.outlineIntro) {
+                document.getElementById('resOutlineIntro').innerHTML = fmt(data.outlineIntro);
+                const b = document.getElementById('resOutlineBody'); b.innerHTML='';
+                (data.outlineBody||[]).forEach(x => b.innerHTML += `<li class="mb-3">${fmt(x)}</li>`);
+                document.getElementById('resOutlineConclusion').innerHTML = fmt(data.outlineConclusion);
             }
-            if ((targetSection === 'all' || targetSection === 'bonus') && data.illustration) {
-                document.getElementById('resIllustration').innerHTML = formatText(data.illustration);
-                populateList('resHymns', data.hymns);
-                document.getElementById('resPrayer').innerHTML = formatText(data.prayer);
+            if ((section==='all'||section==='bonus') && data.illustration) {
+                document.getElementById('resIllustration').innerHTML = fmt(data.illustration);
+                popList('resHymns', data.hymns);
+                document.getElementById('resPrayer').innerHTML = fmt(data.prayer);
             }
             lucide.createIcons();
         }
 
-        // --- Actions ---
-        async function generateSermon(targetSection = 'all', specificPassage = null) {
-            const passageInput = specificPassage || document.getElementById('passage').value.trim();
-            const contextInput = document.getElementById('context').value.trim();
-            const errorBox = document.getElementById('errorBox');
-            errorBox.classList.add('hidden');
+        // =============================================
+        //  메인 액션
+        // =============================================
+        async function generateSermon(section='all', specificPassage=null) {
+            const passage = specificPassage || document.getElementById('passage').value.trim();
+            const context = document.getElementById('context').value.trim();
+            const err = document.getElementById('errorBox');
+            err.classList.add('hidden');
 
-            if (targetSection === 'all' && !passageInput && !contextInput) {
-                errorBox.innerHTML = "<strong>입력 오류:</strong> 성경 본문이나 상황을 입력해주세요.";
-                errorBox.classList.remove('hidden'); return;
+            if (section==='all' && !passage && !context) {
+                err.innerHTML = "<strong>입력 오류:</strong> 성경 본문이나 상황을 입력해주세요.";
+                err.classList.remove('hidden'); return;
             }
-            if (getApiMode() === 'gemini' && !document.getElementById('geminiApiKey').value.trim()) {
-                errorBox.innerHTML = "<strong>설정 오류:</strong> Gemini API 키를 입력하거나 '무료 모드'를 선택해주세요.";
-                errorBox.classList.remove('hidden'); return;
+            if (getApiMode()==='gemini' && !document.getElementById('geminiApiKey').value.trim()) {
+                err.innerHTML = "<strong>설정 오류:</strong> API 키를 입력하거나 '무료 모드'를 선택해주세요.";
+                err.classList.remove('hidden'); return;
             }
 
             setButtonsDisabled(true);
-            if (targetSection === 'all') {
+            if (section==='all') {
                 document.getElementById('emptyState').classList.add('hidden');
                 document.getElementById('resultContent').classList.add('hidden');
-                document.getElementById('globalLoadingState').classList.replace('hidden', 'flex');
+                document.getElementById('globalLoadingState').classList.replace('hidden','flex');
+                document.getElementById('loadingSubText').textContent = '최적 모델을 선택 중...';
                 if(specificPassage) document.getElementById('passage').value = specificPassage;
-            } else { setSectionLoading(targetSection, true); }
+            } else { setSectionLoading(section, true); }
 
             try {
-                const result = await callAI(targetSection, passageInput, contextInput);
-                if(targetSection !== 'all') {
-                    // 개별 섹션 업데이트
-                    if(currentSermonState.fullDataRaw) {
-                        Object.assign(currentSermonState.fullDataRaw, result);
-                    }
-                }
-                renderData(result, targetSection);
-                if (targetSection === 'all') {
-                    document.getElementById('globalLoadingState').classList.replace('flex', 'hidden');
+                const result = await callAI(section, passage, context);
+                if (section!=='all' && currentSermonState.fullDataRaw) Object.assign(currentSermonState.fullDataRaw, result);
+                renderData(result, section);
+                if (section==='all') {
+                    document.getElementById('globalLoadingState').classList.replace('flex','hidden');
                     document.getElementById('resultContent').classList.remove('hidden');
                 }
-            } catch (error) {
-                console.error('생성 오류:', error);
-                if(targetSection === 'all') {
-                    errorBox.innerHTML = `<strong>오류 발생:</strong> ${error.message}`; errorBox.classList.remove('hidden');
-                    document.getElementById('globalLoadingState').classList.replace('flex', 'hidden');
+            } catch (e) {
+                console.error('생성 오류:', e);
+                if (section==='all') {
+                    err.innerHTML = `<strong>오류:</strong> ${e.message.replace(/\n/g,'<br>')}<br><span class="text-xs mt-1 block">잠시 후 다시 시도하거나, 다른 모드를 사용해 보세요.</span>`;
+                    err.classList.remove('hidden');
+                    document.getElementById('globalLoadingState').classList.replace('flex','hidden');
                     document.getElementById('emptyState').classList.remove('hidden');
-                } else alert(`새로고침 오류: ${error.message}`);
+                } else alert(`새로고침 오류: ${e.message}`);
             } finally {
                 setButtonsDisabled(false);
-                if (targetSection !== 'all') setSectionLoading(targetSection, false);
+                if (section!=='all') setSectionLoading(section, false);
             }
         }
 
-        function refreshSection(section) { if (!currentSermonState.passage) return; generateSermon(section); }
+        function refreshSection(s) { if(!currentSermonState.passage) return; generateSermon(s); }
 
         async function generateFullSermon() {
-            if (!currentSermonState.fullDataRaw) return;
-            const wrapper = document.getElementById('fullSermonWrapper');
-            const loader = document.getElementById('load-fullSermon');
-            const content = document.getElementById('fullSermonContent');
-            const btnGen = document.getElementById('btnGenerateFull');
-            
-            wrapper.classList.remove('hidden'); content.classList.add('hidden'); loader.classList.replace('hidden', 'flex');
-            btnGen.disabled = true; btnGen.classList.add('opacity-50', 'cursor-not-allowed');
-
+            if(!currentSermonState.fullDataRaw) return;
+            const wrapper=document.getElementById('fullSermonWrapper'), loader=document.getElementById('load-fullSermon'), content=document.getElementById('fullSermonContent'), btn=document.getElementById('btnGenerateFull');
+            wrapper.classList.remove('hidden'); content.classList.add('hidden'); loader.classList.replace('hidden','flex');
+            btn.disabled=true; btn.classList.add('opacity-50','cursor-not-allowed');
             try {
-                const result = await callAI('fullScript');
+                const r = await callAI('fullScript');
                 document.getElementById('fsPassage').textContent = currentSermonState.passage;
                 document.getElementById('fsTitle').textContent = `"${currentSermonState.title}"`;
-                document.getElementById('fsBody').innerHTML = result.scriptHtml;
-                loader.classList.replace('flex', 'hidden'); content.classList.remove('hidden');
-                content.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            } catch (error) {
-                alert(`풀스크립트 생성 중 오류: ${error.message}`); loader.classList.replace('flex', 'hidden');
-            } finally {
-                btnGen.disabled = false; btnGen.classList.remove('opacity-50', 'cursor-not-allowed');
-            }
+                document.getElementById('fsBody').innerHTML = r.scriptHtml;
+                loader.classList.replace('flex','hidden'); content.classList.remove('hidden');
+                content.scrollIntoView({behavior:'smooth',block:'start'});
+            } catch(e) {
+                alert(`설교문 생성 오류: ${e.message}`); loader.classList.replace('flex','hidden');
+            } finally { btn.disabled=false; btn.classList.remove('opacity-50','cursor-not-allowed'); }
         }
 
-        // --- Modal Logic ---
-        const modal = document.getElementById('passageModal');
-        const modalContent = document.getElementById('modalContent');
-        const modalLoading = document.getElementById('modalLoading');
-        const candidateList = document.getElementById('candidateList');
-
+        // =============================================
+        //  본문 추천 모달
+        // =============================================
         async function openPassageModal() {
-            modal.classList.remove('hidden'); modalContent.classList.add('hidden'); modalLoading.classList.replace('hidden', 'flex');
-            const currentContext = document.getElementById('context').value.trim() || '일반적인 주일 예배';
+            document.getElementById('passageModal').classList.remove('hidden');
+            document.getElementById('modalContent').classList.add('hidden');
+            document.getElementById('modalLoading').classList.replace('hidden','flex');
             try {
-                const result = await callAI('passageCandidates', null, currentContext);
-                candidateList.innerHTML = '';
-                (result.candidates||[]).forEach(cand => {
+                const ctx = document.getElementById('context').value.trim() || '일반 주일';
+                const r = await callAI('passageCandidates', null, ctx);
+                const list = document.getElementById('candidateList'); list.innerHTML='';
+                (r.candidates||[]).forEach(c => {
                     const btn = document.createElement('button');
                     btn.className = "w-full text-left p-4 bg-white border border-slate-200 hover:border-blue-500 hover:bg-blue-50 rounded-lg transition-colors group";
-                    btn.innerHTML = `<div class="flex justify-between items-center mb-1"><span class="font-bold text-blue-700 group-hover:text-blue-800">${cand.passage}</span><i data-lucide="arrow-right" class="w-4 h-4 text-slate-300 group-hover:text-blue-500"></i></div><div class="text-sm font-medium text-slate-800 mb-1">"${cand.title}"</div><div class="text-xs text-slate-500">${cand.reason}</div>`;
-                    btn.onclick = () => { closePassageModal(); document.getElementById('loadingText').textContent = `'${cand.passage}' 본문으로 전체 설교를 재구성합니다...`; generateSermon('all', cand.passage); };
-                    candidateList.appendChild(btn);
+                    btn.innerHTML = `<div class="flex justify-between items-center mb-1"><span class="font-bold text-blue-700">${c.passage}</span><i data-lucide="arrow-right" class="w-4 h-4 text-slate-300 group-hover:text-blue-500"></i></div><div class="text-sm font-medium text-slate-800 mb-1">"${c.title}"</div><div class="text-xs text-slate-500">${c.reason}</div>`;
+                    btn.onclick = () => { closePassageModal(); generateSermon('all', c.passage); };
+                    list.appendChild(btn);
                 });
                 lucide.createIcons();
-                modalLoading.classList.replace('flex', 'hidden'); modalContent.classList.remove('hidden');
-            } catch (error) { alert(`후보를 불러오는데 실패했습니다: ${error.message}`); closePassageModal(); }
+                document.getElementById('modalLoading').classList.replace('flex','hidden');
+                document.getElementById('modalContent').classList.remove('hidden');
+            } catch(e) { alert(`후보 로딩 실패: ${e.message}`); closePassageModal(); }
         }
-        function closePassageModal() { modal.classList.add('hidden'); document.getElementById('loadingText').textContent = "말씀과 주석을 깊이 연구 중입니다..."; }
+        function closePassageModal() { document.getElementById('passageModal').classList.add('hidden'); }
     </script>
 </body>
 </html>
