@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI 설교 도우미 (완성버전)</title>
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Puter.js: API 키 없이 무료로 AI 사용 -->
+    <script src="https://js.puter.com/v2/"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
         @import url('https://fonts.googleapis.com/css2?family=Gentium+Book+Plus:ital,wght@0,400;0,700;1,400&display=swap');
@@ -51,7 +51,7 @@
             <i data-lucide="book-open" class="w-8 h-8"></i>
             <div>
                 <h1 class="text-2xl font-bold">AI 설교 도우미</h1>
-                <p class="text-blue-200 text-sm mt-1">대역비교, 원어 주해, 풀스크립트 및 개인 API 환경 지원</p>
+                <p class="text-blue-200 text-sm mt-1">대역비교, 원어 주해, 풀스크립트 및 무료 AI 지원</p>
             </div>
         </div>
     </header>
@@ -61,16 +61,33 @@
         <!-- Input Section -->
         <div class="md:col-span-4 space-y-6 no-print">
             
-            <!-- NEW: API Key Input Section -->
+            <!-- API 모드 선택 -->
             <div class="bg-indigo-50 rounded-xl shadow-sm border border-indigo-200 p-5">
                 <h2 class="text-sm font-bold text-indigo-900 flex items-center gap-2 mb-3">
-                    <i data-lucide="key" class="w-4 h-4"></i> 구글 Gemini API 키 설정
+                    <i data-lucide="settings" class="w-4 h-4"></i> AI 엔진 설정
                 </h2>
-                <input type="password" id="geminiApiKey" placeholder="발급받은 API 키 입력" class="w-full text-sm px-3 py-2.5 border border-indigo-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none mb-2">
-                <p class="text-[12px] text-indigo-600 leading-tight">
-                    ※ 깃허브 등 외부 환경 사용 시 필수입니다. 브라우저에만 안전하게 저장됩니다. <br>
-                    <a href="https://aistudio.google.com/app/apikey" target="_blank" class="underline font-bold hover:text-indigo-800">👉 API 키 무료 발급받기</a>
-                </p>
+                <div class="space-y-2 mb-3">
+                    <label class="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-indigo-100 transition">
+                        <input type="radio" name="apiMode" value="puter" checked onchange="toggleApiMode()" class="text-indigo-600">
+                        <div>
+                            <span class="text-sm font-bold text-indigo-800">무료 모드 (Puter.js)</span>
+                            <p class="text-[11px] text-indigo-600">API 키 불필요, 즉시 사용 가능</p>
+                        </div>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-indigo-100 transition">
+                        <input type="radio" name="apiMode" value="gemini" onchange="toggleApiMode()" class="text-indigo-600">
+                        <div>
+                            <span class="text-sm font-bold text-indigo-800">직접 API 키 입력 (Gemini)</span>
+                            <p class="text-[11px] text-indigo-600">본인 키 사용, 더 빠를 수 있음</p>
+                        </div>
+                    </label>
+                </div>
+                <div id="geminiKeySection" class="hidden">
+                    <input type="password" id="geminiApiKey" placeholder="발급받은 Gemini API 키 입력" class="w-full text-sm px-3 py-2.5 border border-indigo-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none mb-2">
+                    <p class="text-[12px] text-indigo-600 leading-tight">
+                        <a href="https://aistudio.google.com/app/apikey" target="_blank" class="underline font-bold hover:text-indigo-800">API 키 무료 발급받기</a>
+                    </p>
+                </div>
             </div>
 
             <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 sticky top-6">
@@ -107,12 +124,13 @@
             <div id="globalLoadingState" class="hidden flex-col items-center justify-center h-64 bg-white rounded-xl shadow-sm border border-slate-200 no-print">
                 <div class="loader loader-large mb-4"></div>
                 <p class="text-blue-800 font-medium text-lg" id="loadingText">말씀의 지혜를 모으고 있습니다...</p>
-                <p class="text-slate-500 text-sm mt-2">각 영역별 설교 제언을 함께 분석 중입니다 (약 20~30초 소요)</p>
+                <p class="text-slate-500 text-sm mt-2">각 영역별 설교 제언을 함께 분석 중입니다 (약 20~40초 소요)</p>
             </div>
 
             <div id="emptyState" class="flex flex-col items-center justify-center h-full min-h-[400px] bg-white rounded-xl shadow-sm border border-slate-200 text-slate-400 no-print">
                 <i data-lucide="library" class="w-16 h-16 mb-4 opacity-50"></i>
-                <p class="text-lg">왼쪽에서 API 키를 넣고 생성을 눌러주세요.</p>
+                <p class="text-lg">성경 본문이나 상황을 입력하고 생성을 눌러주세요.</p>
+                <p class="text-sm mt-2">API 키 없이도 바로 사용 가능합니다!</p>
             </div>
 
             <!-- 결과물 컨테이너 -->
@@ -131,24 +149,21 @@
                         <p id="resContext" class="text-sm text-slate-500"></p>
                     </div>
 
-                    <!-- 0.5 성경 대역본 비교 & 설교 적용 -->
+                    <!-- 0.5 성경 대역본 비교 -->
                     <div id="sec-bible" class="relative bg-slate-50 rounded-xl shadow-sm border border-slate-200 p-6">
                         <div class="flex justify-between items-center mb-4 border-b pb-2">
                             <h3 class="text-lg font-bold flex items-center gap-2 text-slate-800"><i data-lucide="book-open-check" class="w-5 h-5 text-blue-700"></i>성경 본문 대역 비교</h3>
                             <button onclick="refreshSection('bible')" class="refresh-btn no-print text-slate-400 hover:text-blue-700"><i data-lucide="refresh-cw" class="w-4 h-4"></i></button>
                         </div>
                         <div id="resBibleTexts" class="space-y-4 mb-4"></div>
-                        
                         <div class="mt-4 bg-blue-100/50 p-4 rounded-md border border-blue-200 hidden" id="resBibleInsightWrapper">
-                            <span class="font-bold text-blue-800 text-sm flex items-center gap-1 mb-2">
-                                <i data-lucide="lightbulb" class="w-4 h-4"></i> 대역본 비교를 통한 설교 통찰
-                            </span>
+                            <span class="font-bold text-blue-800 text-sm flex items-center gap-1 mb-2"><i data-lucide="lightbulb" class="w-4 h-4"></i> 대역본 비교를 통한 설교 통찰</span>
                             <p id="resBibleInsight" class="text-sm text-blue-900 leading-relaxed"></p>
                         </div>
                         <div id="load-bible" class="section-loading hidden no-print"><div class="loader"></div></div>
                     </div>
 
-                    <!-- 0.8 역사적/지리적 배경 & 설교 적용 -->
+                    <!-- 0.8 역사적/지리적 배경 -->
                     <div id="sec-background" class="relative bg-stone-50 rounded-xl shadow-sm border border-stone-200 p-6">
                         <div class="flex justify-between items-center mb-4 border-b border-stone-200 pb-2">
                             <h3 class="text-lg font-bold flex items-center gap-2 text-stone-800"><i data-lucide="map" class="w-5 h-5 text-stone-600"></i>역사적/지리적 배경 이해</h3>
@@ -164,17 +179,14 @@
                                 <p id="resImgCaption" class="text-xs text-stone-500 mt-2 text-center"></p>
                             </div>
                         </div>
-                        
                         <div class="mt-4 bg-stone-200/50 p-4 rounded-md border border-stone-300 hidden" id="resBackgroundInsightWrapper">
-                            <span class="font-bold text-stone-800 text-sm flex items-center gap-1 mb-2">
-                                <i data-lucide="lightbulb" class="w-4 h-4"></i> 배경 지식을 활용한 설교 제언
-                            </span>
+                            <span class="font-bold text-stone-800 text-sm flex items-center gap-1 mb-2"><i data-lucide="lightbulb" class="w-4 h-4"></i> 배경 지식을 활용한 설교 제언</span>
                             <p id="resBackgroundInsight" class="text-sm text-stone-900 leading-relaxed"></p>
                         </div>
                         <div id="load-background" class="section-loading hidden no-print"><div class="loader text-stone-600"></div></div>
                     </div>
 
-                    <!-- 1. 심층 원어적 주해 및 적용 -->
+                    <!-- 1. 심층 원어적 주해 -->
                     <div id="sec-exegesis" class="relative bg-white rounded-xl shadow-sm border border-slate-200 p-6">
                         <div class="flex justify-between items-center mb-4 border-b pb-2">
                             <h3 class="text-lg font-bold flex items-center gap-2 text-slate-800"><i data-lucide="languages" class="w-5 h-5 text-indigo-600"></i>1. 심층 원어 주해 및 설교 가이드</h3>
@@ -204,7 +216,6 @@
                             <ul id="resYoutubeInsights" class="text-slate-700 text-sm space-y-3 list-disc pl-5"></ul>
                             <div id="load-youtube" class="section-loading hidden no-print"><div class="loader"></div></div>
                         </div>
-
                         <div id="sec-ai" class="relative bg-white rounded-xl shadow-sm border border-slate-200 p-6 border-l-4 border-l-purple-500">
                             <div class="flex justify-between items-center mb-4 border-b pb-2">
                                 <h3 class="text-lg font-bold flex items-center gap-2 text-slate-800"><i data-lucide="lightbulb" class="w-5 h-5 text-purple-500"></i>4. 현대 회중을 위한 적용</h3>
@@ -236,19 +247,18 @@
                             <button onclick="refreshSection('bonus')" class="refresh-btn text-slate-400 hover:text-yellow-400"><i data-lucide="refresh-cw" class="w-4 h-4"></i></button>
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-                            <div><h4 class="text-yellow-400 font-semibold text-sm mb-2">📖 예화</h4><p id="resIllustration" class="text-slate-300 text-sm leading-relaxed"></p></div>
+                            <div><h4 class="text-yellow-400 font-semibold text-sm mb-2">예화</h4><p id="resIllustration" class="text-slate-300 text-sm leading-relaxed"></p></div>
                             <div class="space-y-4">
-                                <div><h4 class="text-yellow-400 font-semibold text-sm mb-2">🎵 찬양</h4><ul id="resHymns" class="text-slate-300 text-sm space-y-1 list-disc pl-5"></ul></div>
-                                <div><h4 class="text-yellow-400 font-semibold text-sm mb-2">🙏 마무리 기도</h4><p id="resPrayer" class="text-slate-300 text-sm italic leading-relaxed"></p></div>
+                                <div><h4 class="text-yellow-400 font-semibold text-sm mb-2">찬양</h4><ul id="resHymns" class="text-slate-300 text-sm space-y-1 list-disc pl-5"></ul></div>
+                                <div><h4 class="text-yellow-400 font-semibold text-sm mb-2">마무리 기도</h4><p id="resPrayer" class="text-slate-300 text-sm italic leading-relaxed"></p></div>
                             </div>
                         </div>
                         <div id="load-bonus" class="section-loading hidden no-print" style="background: rgba(30, 41, 59, 0.8);"><div class="loader"></div></div>
                     </div>
 
-                    <!-- 🖨️ 다운로드/복사/풀스크립트 전환 영역 (no-print) -->
+                    <!-- 다운로드/복사/풀스크립트 -->
                     <div class="bg-indigo-50 border border-indigo-100 rounded-xl p-6 mt-8 flex flex-col items-center gap-4 no-print">
-                        <h3 class="font-bold text-indigo-900 text-lg">💡 초안 저장 및 활용하기</h3>
-                        
+                        <h3 class="font-bold text-indigo-900 text-lg">초안 저장 및 활용하기</h3>
                         <div class="flex flex-wrap justify-center gap-3 w-full">
                             <button onclick="copyToClipboard('draftWrapper')" class="flex-1 max-w-[220px] flex items-center justify-center gap-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-medium py-2.5 rounded-lg shadow-sm transition-colors">
                                 <i data-lucide="copy" class="w-4 h-4"></i> 초안 복사 (한글/워드용)
@@ -257,36 +267,28 @@
                                 <i data-lucide="printer" class="w-4 h-4"></i> 초안 인쇄 (PDF)
                             </button>
                         </div>
-                        
                         <div class="w-full h-px bg-indigo-200 my-2"></div>
-                        
                         <p class="text-sm text-indigo-700 text-center mb-1">초안이 완성되었습니다! AI가 이 뼈대를 바탕으로 실제 강단용 <strong>완전한 설교문</strong>을 써드립니다.</p>
-                        
                         <button id="btnGenerateFull" onclick="generateFullSermon()" class="w-full max-w-md flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-xl shadow-md transition-all hover:scale-[1.02]">
                             <i data-lucide="file-signature" class="w-5 h-5"></i> 설교문 전체 (Full Script) 작성하기
                         </button>
                     </div>
                 </div>
                 
-                <!-- ================= [ 풀스크립트 (전체 설교문) 영역 ] ================= -->
+                <!-- ================= [ 풀스크립트 영역 ] ================= -->
                 <div id="fullSermonWrapper" class="hidden space-y-6 mt-12 pt-8 border-t-2 border-slate-200">
-                    
                     <div id="load-fullSermon" class="hidden flex-col items-center justify-center py-12 bg-white rounded-xl border border-slate-200 shadow-sm no-print">
                         <div class="loader loader-large text-indigo-600 mb-4 border-t-indigo-600"></div>
                         <p class="text-indigo-800 font-medium text-lg text-center">개요와 주석을 바탕으로<br>전체 설교문을 집필하고 있습니다...</p>
                         <p class="text-slate-500 text-sm mt-2">약 30~40초 정도 소요됩니다.</p>
                     </div>
-
                     <div id="fullSermonContent" class="hidden bg-white rounded-xl shadow-md border border-slate-200 p-8 md:p-12">
                         <div class="text-center mb-10 border-b border-slate-200 pb-8">
                             <p class="text-slate-500 font-medium mb-2">[ 전체 설교문 ]</p>
                             <p id="fsPassage" class="text-indigo-600 font-bold mb-3 text-lg"></p>
                             <h2 id="fsTitle" class="text-3xl font-black text-slate-900 leading-tight"></h2>
                         </div>
-                        
                         <div id="fsBody" class="text-slate-800 script-format"></div>
-                        
-                        <!-- 풀스크립트 복사/인쇄 영역 -->
                         <div class="mt-12 pt-6 border-t border-slate-200 flex justify-end gap-3 no-print">
                             <button onclick="copyToClipboard('fullSermonContent')" class="flex items-center gap-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-medium py-2 px-4 rounded-lg shadow-sm transition-colors">
                                 <i data-lucide="copy" class="w-4 h-4"></i> 설교문 복사 (한글/워드용)
@@ -297,7 +299,6 @@
                         </div>
                     </div>
                 </div>
-
             </div>
         </div>
     </main>
@@ -331,22 +332,33 @@
         // 페이지 로드 시 로컬 스토리지에서 API 키 불러오기
         document.addEventListener('DOMContentLoaded', () => {
             const savedKey = localStorage.getItem('geminiApiKey');
-            if(savedKey) {
-                document.getElementById('geminiApiKey').value = savedKey;
+            if(savedKey) document.getElementById('geminiApiKey').value = savedKey;
+            const savedMode = localStorage.getItem('apiMode');
+            if(savedMode) {
+                document.querySelector(`input[name="apiMode"][value="${savedMode}"]`).checked = true;
+                toggleApiMode();
             }
         });
 
+        function getApiMode() {
+            return document.querySelector('input[name="apiMode"]:checked').value;
+        }
+
+        function toggleApiMode() {
+            const mode = getApiMode();
+            localStorage.setItem('apiMode', mode);
+            document.getElementById('geminiKeySection').classList.toggle('hidden', mode !== 'gemini');
+        }
+
         function getApiKey() {
             const key = document.getElementById('geminiApiKey').value.trim();
-            if(key) {
-                localStorage.setItem('geminiApiKey', key);
-            }
+            if(key) localStorage.setItem('geminiApiKey', key);
             return key;
         }
 
         function setContext(text) { document.getElementById('context').value = text; }
         const delay = ms => new Promise(res => setTimeout(res, ms));
-        function formatText(text) { return text.replace(/\n/g, '<br>'); }
+        function formatText(text) { return text ? text.replace(/\n/g, '<br>') : ''; }
         
         function setSectionLoading(sectionId, isLoading) {
             const loader = document.getElementById(`load-${sectionId}`);
@@ -360,7 +372,6 @@
             disabled ? genBtn.classList.add('opacity-70', 'cursor-not-allowed') : genBtn.classList.remove('opacity-70', 'cursor-not-allowed');
         }
 
-        // --- 클립보드 복사 함수 ---
         function copyToClipboard(elementId) {
             const el = document.getElementById(elementId);
             const range = document.createRange();
@@ -370,7 +381,7 @@
             sel.addRange(range);
             try {
                 document.execCommand('copy');
-                alert('✅ 내용이 클립보드에 성공적으로 복사되었습니다!\n\n아래아 한글(HWP)이나 MS Word를 열고 "붙여넣기(Ctrl+V)" 하시면 서식이 그대로 복사됩니다.');
+                alert('내용이 클립보드에 성공적으로 복사되었습니다!\n\n아래아 한글(HWP)이나 MS Word를 열고 "붙여넣기(Ctrl+V)" 하시면 서식이 그대로 복사됩니다.');
             } catch (err) {
                 alert('복사 중 오류가 발생했습니다. 직접 드래그해서 복사해주세요.');
             }
@@ -384,114 +395,198 @@
             setTimeout(() => { document.body.classList.remove(`print-mode-${mode}`); }, 1000);
         }
 
-        // --- Schema 조각 사전 분리 (Initialization 오류 방지) ---
-        const bibleTextsSchema = { 
-            type: "ARRAY", items: { type: "OBJECT", properties: { verseNum: { type: "STRING" }, koreanRev: { type: "STRING" }, koreanNew: { type: "STRING" }, english: { type: "STRING" } }, required: ["verseNum", "koreanRev", "koreanNew", "english"] } 
-        };
-        const backgroundSchema = { 
-            type: "OBJECT", properties: { historicalContext: { type: "STRING" }, geographicalContext: { type: "STRING" }, mapSearchQuery: { type: "STRING" }, mapCaption: { type: "STRING" }, preachingInsight: { type: "STRING" } }, required: ["historicalContext", "geographicalContext", "mapSearchQuery", "mapCaption", "preachingInsight"] 
-        };
-        const exegesisSchema = { 
-            type: "ARRAY", items: { type: "OBJECT", properties: { word: { type: "STRING" }, originalText: { type: "STRING" }, pronunciation: { type: "STRING" }, language: { type: "STRING" }, meaning: { type: "STRING" }, crossReferences: { type: "ARRAY", items: { type: "STRING" } }, preachingInsight: { type: "STRING" } }, required: ["word", "originalText", "pronunciation", "language", "meaning", "crossReferences", "preachingInsight"] } 
-        };
-        const bookReferencesSchema = { 
-            type: "ARRAY", items: { type: "OBJECT", properties: { author: { type: "STRING" }, bookTitle: { type: "STRING" }, quote: { type: "STRING" }, application: { type: "STRING" } }, required: ["author", "bookTitle", "quote", "application"] } 
-        };
-        const stringArraySchema = { type: "ARRAY", items: { type: "STRING" } };
-
-        const schemas = {
-            all: { 
-                properties: { 
-                    passageUsed: { type: "STRING" }, title: { type: "STRING" }, 
-                    bibleTexts: bibleTextsSchema, 
-                    bibleTranslationInsight: { type: "STRING" }, 
-                    background: backgroundSchema, 
-                    exegesis: exegesisSchema, 
-                    bookReferences: bookReferencesSchema, 
-                    youtubeInsights: stringArraySchema, aiInsights: stringArraySchema, 
-                    outlineIntro: { type: "STRING" }, outlineBody: stringArraySchema, outlineConclusion: { type: "STRING" }, 
-                    illustration: { type: "STRING" }, hymns: stringArraySchema, prayer: { type: "STRING" } 
-                }, 
-                required: ["passageUsed", "title", "bibleTexts", "bibleTranslationInsight", "background", "exegesis", "bookReferences", "youtubeInsights", "aiInsights", "outlineIntro", "outlineBody", "outlineConclusion", "illustration", "hymns", "prayer"] 
-            },
-            bible: { properties: { bibleTexts: bibleTextsSchema, bibleTranslationInsight: { type: "STRING" } }, required: ["bibleTexts", "bibleTranslationInsight"] },
-            background: { properties: { background: backgroundSchema }, required: ["background"] },
-            exegesis: { properties: { exegesis: exegesisSchema }, required: ["exegesis"] },
-            books: { properties: { bookReferences: bookReferencesSchema }, required: ["bookReferences"] },
-            youtube: { properties: { youtubeInsights: stringArraySchema }, required: ["youtubeInsights"] },
-            ai: { properties: { aiInsights: stringArraySchema }, required: ["aiInsights"] },
-            outline: { properties: { outlineIntro: { type: "STRING" }, outlineBody: stringArraySchema, outlineConclusion: { type: "STRING" } }, required: ["outlineIntro", "outlineBody", "outlineConclusion"] },
-            bonus: { properties: { illustration: { type: "STRING" }, hymns: stringArraySchema, prayer: { type: "STRING" } }, required: ["illustration", "hymns", "prayer"] },
-            passageCandidates: { properties: { candidates: { type: "ARRAY", items: { type: "OBJECT", properties: { passage: { type: "STRING" }, title: { type: "STRING" }, reason: { type: "STRING" } }, required: ["passage", "title", "reason"] } } }, required: ["candidates"] },
-            fullScript: { properties: { scriptHtml: { type: "STRING" } }, required: ["scriptHtml"] }
-        };
-
-        // --- Core API Request ---
-        async function callGeminiAPI(targetSection, passageInput, contextInput, retries = 3) {
-            const userApiKey = getApiKey();
-            if (!userApiKey) {
-                throw new Error("API 키가 입력되지 않았습니다. 좌측 상단에 API 키를 입력해주세요.");
-            }
-
-            // 모델 이름을 공개적으로 안정적이고 가장 성능이 뛰어난 'gemini-1.5-pro-latest' 로 변경했습니다.
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key=${userApiKey}`;
+        // ============================
+        //  프롬프트 생성 함수
+        // ============================
+        function buildPrompt(targetSection, passageInput, contextInput) {
+            const sysInst = "당신은 개혁주의/복음주의 신학 기반의 탁월한 설교자이자 목회 보조 AI입니다. 정보 전달을 넘어 목회적/설교적 가이드를 확실히 제공합니다. 반드시 유효한 JSON만 출력하세요. 마크다운 코드블록 없이 순수 JSON만 출력하세요.";
             let prompt = "";
-            let sysInst = "당신은 개혁주의/복음주의 신학 기반의 탁월한 설교자이자 목회 보조 AI입니다. 정보 전달을 넘어 목회적/설교적 가이드를 확실히 제공합니다.";
-            let schema = null;
+            let jsonStructureHint = "";
 
             if (targetSection === 'all') {
-                prompt = `설교 초안 작성. 본문: ${passageInput||'상황에 맞게 추천'}, 상황: ${contextInput||'일반주일'}. 
-                [중요 지시사항]
-                1. bibleTranslationInsight: 개역개정과 다른 번역의 뉘앙스 차이를 성도에게 어떻게 설명할지 가이드.
-                2. background 안의 preachingInsight: 역사/지리적 배경을 오늘날 성도 삶에 어떻게 적용할지 가이드.
-                3. exegesis 안의 preachingInsight: 원어 의미를 성도들에게 어떻게 설명/적용할지 구체적 가이드 필수.
-                4. youtubeInsights, aiInsights: "이 방향으로 설교 전개해 보세요" 식의 코칭 멘트.`;
-                schema = schemas.all;
+                jsonStructureHint = `{
+  "passageUsed": "사용된 성경 본문",
+  "title": "설교 제목",
+  "bibleTexts": [{"verseNum":"절번호","koreanRev":"개역개정","koreanNew":"새번역","english":"영어(NIV 등)"}],
+  "bibleTranslationInsight": "대역 비교 통찰",
+  "background": {"historicalContext":"역사적 배경","geographicalContext":"지리적 배경","mapSearchQuery":"이미지 검색어(영문)","mapCaption":"이미지 설명","preachingInsight":"설교 적용"},
+  "exegesis": [{"word":"한글 단어","originalText":"원어","pronunciation":"발음","language":"히브리어/헬라어","meaning":"의미 설명","crossReferences":["참조구절1","참조구절2"],"preachingInsight":"설교 적용 포인트"}],
+  "bookReferences": [{"author":"저자","bookTitle":"책제목","quote":"인용문","application":"설교 적용"}],
+  "youtubeInsights": ["설교적 접근 가이드 1","설교적 접근 가이드 2","설교적 접근 가이드 3"],
+  "aiInsights": ["현대 적용 1","현대 적용 2","현대 적용 3"],
+  "outlineIntro": "서론 내용",
+  "outlineBody": ["본론 1","본론 2","본론 3"],
+  "outlineConclusion": "결론 내용",
+  "illustration": "예화 내용",
+  "hymns": ["찬양1","찬양2","찬양3"],
+  "prayer": "마무리 기도문"
+}`;
+                prompt = `${sysInst}
+
+설교 초안 작성. 본문: ${passageInput||'상황에 맞게 추천'}, 상황: ${contextInput||'일반주일'}.
+
+[중요 지시사항]
+1. bibleTranslationInsight: 개역개정과 다른 번역의 뉘앙스 차이를 성도에게 어떻게 설명할지 가이드.
+2. background 안의 preachingInsight: 역사/지리적 배경을 오늘날 성도 삶에 어떻게 적용할지 가이드.
+3. exegesis 안의 preachingInsight: 원어 의미를 성도들에게 어떻게 설명/적용할지 구체적 가이드 필수.
+4. youtubeInsights, aiInsights: "이 방향으로 설교 전개해 보세요" 식의 코칭 멘트.
+5. bibleTexts는 본문의 각 절마다 개역개정, 새번역, 영어(NIV) 3가지 대역을 제공.
+6. exegesis는 핵심 원어 단어 2-3개를 깊이 있게 분석.
+7. bookReferences는 실제 존재하는 신학 서적/주석에서 2-3개 인용.
+
+아래 JSON 구조를 정확히 따라 출력하세요. 마크다운 코드블록(\`\`\`) 없이 순수 JSON만 출력:
+${jsonStructureHint}`;
             } else if (targetSection === 'passageCandidates') {
-                prompt = `현재 상황(${contextInput || '일반 주일'})에 맞는 성경 본문 후보 3가지 제안. 기존 본문(${currentSermonState.passage}) 제외.`;
-                schema = schemas.passageCandidates;
+                prompt = `${sysInst}
+
+현재 상황(${contextInput || '일반 주일'})에 맞는 성경 본문 후보 3가지 제안. 기존 본문(${currentSermonState.passage}) 제외.
+
+아래 JSON 구조를 정확히 따라 출력. 마크다운 코드블록 없이 순수 JSON만:
+{"candidates":[{"passage":"성경구절","title":"설교제목","reason":"추천이유"}]}`;
             } else if (targetSection === 'fullScript') {
-                prompt = `작성된 '설교 개요 및 주석 데이터'를 바탕으로 실제 강단에서 선포하는 구어체 형식의 "완전한 설교문(Full Script)" 작성.
-                본문: ${currentSermonState.passage}, 제목: ${currentSermonState.title}
-                데이터: ${JSON.stringify(currentSermonState.fullDataRaw)}
-                [지시사항]
-                1. 경어체(하십시오/합시다 체) 사용. 서론, 본론(대지별), 결론이 물 흐르듯 전개. 설교 시간 20-30분 분량의 풍부한 텍스트.
-                2. 대역본 비교 통찰, 배경 지식 적용점, 원어 의미, 예화를 자연스럽게 설교문 안에 녹여낼 것. HTML 태그(<p>, <br>, <strong>) 사용.`;
-                schema = schemas.fullScript;
+                prompt = `${sysInst}
+
+작성된 '설교 개요 및 주석 데이터'를 바탕으로 실제 강단에서 선포하는 구어체 형식의 "완전한 설교문(Full Script)" 작성.
+본문: ${currentSermonState.passage}, 제목: ${currentSermonState.title}
+데이터: ${JSON.stringify(currentSermonState.fullDataRaw)}
+
+[지시사항]
+1. 경어체(하십시오/합시다 체) 사용. 서론, 본론(대지별), 결론이 물 흐르듯 전개. 설교 시간 20-30분 분량의 풍부한 텍스트.
+2. 대역본 비교 통찰, 배경 지식 적용점, 원어 의미, 예화를 자연스럽게 설교문 안에 녹여낼 것.
+3. HTML 태그(<p>, <br>, <strong>) 사용.
+
+아래 JSON 구조를 정확히 따라 출력. 마크다운 코드블록 없이 순수 JSON만:
+{"scriptHtml":"<p>설교문 HTML 내용</p>"}`;
             } else {
-                prompt = `문맥(본문:${currentSermonState.passage}, 제목:${currentSermonState.title}). '${targetSection}' 부분 새롭게 작성. 설교적 관점을 강화.`;
-                schema = schemas[targetSection];
+                // 개별 섹션 새로고침
+                const sectionHints = {
+                    bible: `{"bibleTexts":[{"verseNum":"","koreanRev":"","koreanNew":"","english":""}],"bibleTranslationInsight":""}`,
+                    background: `{"background":{"historicalContext":"","geographicalContext":"","mapSearchQuery":"","mapCaption":"","preachingInsight":""}}`,
+                    exegesis: `{"exegesis":[{"word":"","originalText":"","pronunciation":"","language":"","meaning":"","crossReferences":[],"preachingInsight":""}]}`,
+                    books: `{"bookReferences":[{"author":"","bookTitle":"","quote":"","application":""}]}`,
+                    youtube: `{"youtubeInsights":["","",""]}`,
+                    ai: `{"aiInsights":["","",""]}`,
+                    outline: `{"outlineIntro":"","outlineBody":["","",""],"outlineConclusion":""}`,
+                    bonus: `{"illustration":"","hymns":["","",""],"prayer":""}`
+                };
+                prompt = `${sysInst}
+
+문맥(본문:${currentSermonState.passage}, 제목:${currentSermonState.title}). '${targetSection}' 부분을 새롭게 작성. 설교적 관점 강화.
+
+아래 JSON 구조를 정확히 따라 출력. 마크다운 코드블록 없이 순수 JSON만:
+${sectionHints[targetSection] || '{}'}`;
             }
+            return prompt;
+        }
 
-            const payload = {
-                contents: [{ parts: [{ text: prompt }] }],
-                systemInstruction: { parts: [{ text: sysInst }] },
-                generationConfig: { responseMimeType: "application/json", responseSchema: { type: "OBJECT", properties: schema.properties, required: schema.required } }
-            };
-
+        // ============================
+        //  Puter.js를 통한 AI 호출
+        // ============================
+        async function callPuterAI(prompt, retries = 3) {
             for (let i = 0; i <= retries; i++) {
                 try {
-                    const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-                    if (!response.ok) {
-                        const errData = await response.json();
-                        throw new Error(errData.error?.message || `API 오류 (${response.status}) - API 키가 유효한지 확인해주세요.`);
-                    }
-                    const data = await response.json();
-                    return JSON.parse(data.candidates[0].content.parts[0].text);
+                    const response = await puter.ai.chat(prompt, {
+                        model: 'gemini-2.5-flash'
+                    });
+                    // response가 객체일 수 있고 문자열일 수 있음
+                    let text = typeof response === 'string' ? response : (response?.message?.content || response?.text || response?.toString() || '');
+                    // 마크다운 코드블록 제거
+                    text = text.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+                    return JSON.parse(text);
                 } catch (error) {
-                    if (i === retries || error.message.includes("API 키가 유효한지")) throw error;
+                    console.error(`Puter AI 시도 ${i+1} 실패:`, error);
+                    if (i === retries) throw new Error(`AI 응답 처리 실패: ${error.message}. 잠시 후 다시 시도해주세요.`);
                     await delay(1000 * Math.pow(2, i));
                 }
             }
         }
 
-        // --- UI Rendering ---
+        // ============================
+        //  Gemini 직접 API 호출
+        // ============================
+        async function callGeminiDirect(prompt, retries = 3) {
+            const userApiKey = getApiKey();
+            if (!userApiKey) throw new Error("API 키가 입력되지 않았습니다.");
+
+            // 현재 사용 가능한 모델 사용
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${userApiKey}`;
+
+            const payload = {
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: {
+                    responseMimeType: "application/json"
+                }
+            };
+
+            for (let i = 0; i <= retries; i++) {
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (!response.ok) {
+                        const errData = await response.json().catch(() => ({}));
+                        const errMsg = errData.error?.message || `API 오류 (${response.status})`;
+                        // 모델을 못 찾으면 대체 모델 시도
+                        if (response.status === 404 && i === 0) {
+                            console.warn('gemini-2.5-flash 실패, gemini-2.5-pro 시도...');
+                            const altUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${userApiKey}`;
+                            const altResponse = await fetch(altUrl, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(payload)
+                            });
+                            if (altResponse.ok) {
+                                const altData = await altResponse.json();
+                                let text = altData.candidates[0].content.parts[0].text;
+                                text = text.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+                                return JSON.parse(text);
+                            }
+                        }
+                        throw new Error(errMsg);
+                    }
+                    const data = await response.json();
+                    let text = data.candidates[0].content.parts[0].text;
+                    text = text.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+                    return JSON.parse(text);
+                } catch (error) {
+                    if (i === retries) throw error;
+                    await delay(1000 * Math.pow(2, i));
+                }
+            }
+        }
+
+        // ============================
+        //  통합 AI 호출 함수
+        // ============================
+        async function callAI(targetSection, passageInput, contextInput) {
+            const prompt = buildPrompt(targetSection, passageInput, contextInput);
+            const mode = getApiMode();
+
+            if (mode === 'puter') {
+                return await callPuterAI(prompt);
+            } else {
+                return await callGeminiDirect(prompt);
+            }
+        }
+
+        // --- UI Rendering (기존과 동일) ---
         function renderData(data, targetSection) {
-            const populateList = (id, arr) => { const el = document.getElementById(id); el.innerHTML = ''; if(!arr) return; arr.forEach(item => { const li = document.createElement('li'); li.innerHTML = formatText(item); el.appendChild(li); }); };
+            const populateList = (id, arr) => {
+                const el = document.getElementById(id);
+                el.innerHTML = '';
+                if(!arr) return;
+                arr.forEach(item => {
+                    const li = document.createElement('li');
+                    li.innerHTML = formatText(item);
+                    el.appendChild(li);
+                });
+            };
 
             if (targetSection === 'all') {
                 currentSermonState.fullDataRaw = data; 
-                document.getElementById('resPassage').textContent = `📖 본문: ${data.passageUsed}`;
+                document.getElementById('resPassage').textContent = `본문: ${data.passageUsed}`;
                 document.getElementById('resTitle').textContent = `"${data.title}"`;
                 currentSermonState.passage = data.passageUsed;
                 currentSermonState.title = data.title;
@@ -506,8 +601,7 @@
                     bibleEl.innerHTML += `<div class="bg-white border border-slate-200 rounded-lg p-4"><div class="font-bold text-blue-800 text-sm mb-2 border-b border-slate-100 pb-1">${verse.verseNum}</div><div class="space-y-2 text-sm"><div class="flex gap-2"><span class="w-16 flex-shrink-0 font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded text-xs text-center self-start mt-0.5">개역개정</span><p class="text-slate-800 font-medium">${verse.koreanRev}</p></div><div class="flex gap-2"><span class="w-16 flex-shrink-0 font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded text-xs text-center self-start mt-0.5">새번역</span><p class="text-blue-800">${verse.koreanNew}</p></div><div class="flex gap-2"><span class="w-16 flex-shrink-0 font-semibold text-slate-400 border border-slate-200 px-2 py-0.5 rounded text-xs text-center self-start mt-0.5">ENG</span><p class="text-slate-500 italic">${verse.english}</p></div></div></div>`;
                 });
                 if(data.bibleTranslationInsight) {
-                    const insightWrapper = document.getElementById('resBibleInsightWrapper');
-                    insightWrapper.classList.remove('hidden');
+                    document.getElementById('resBibleInsightWrapper').classList.remove('hidden');
                     document.getElementById('resBibleInsight').innerHTML = formatText(data.bibleTranslationInsight);
                 }
             }
@@ -516,14 +610,11 @@
                 document.getElementById('resHistBackground').innerHTML = formatText(data.background.historicalContext);
                 document.getElementById('resGeoBackground').innerHTML = formatText(data.background.geographicalContext);
                 document.getElementById('resImgCaption').textContent = data.background.mapCaption;
-                
                 const query = data.background.mapSearchQuery + ' ancient biblical landscape cinematic lighting';
                 const imgSearchUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(query)}?width=400&height=300&nologo=true`;
                 document.getElementById('resBackgroundImg').innerHTML = `<img src="${imgSearchUrl}" alt="${data.background.mapCaption}" class="w-full h-full object-cover relative z-10 rounded shadow-sm" onload="this.style.opacity=1" style="opacity:0; transition: opacity 0.5s;">`;
-
                 if(data.background.preachingInsight) {
-                    const bgInsightWrapper = document.getElementById('resBackgroundInsightWrapper');
-                    bgInsightWrapper.classList.remove('hidden');
+                    document.getElementById('resBackgroundInsightWrapper').classList.remove('hidden');
                     document.getElementById('resBackgroundInsight').innerHTML = formatText(data.background.preachingInsight);
                 }
             }
@@ -544,17 +635,13 @@
                                 </div>
                             </div>
                             <p class="text-sm text-slate-700 leading-relaxed mb-4">${formatText(item.meaning)}</p>
-                            
                             <div class="mb-4 bg-indigo-100/50 p-3 rounded-md border border-indigo-200">
-                                <span class="font-bold text-indigo-800 text-sm flex items-center gap-1 mb-1">
-                                    <i data-lucide="lightbulb" class="w-4 h-4"></i> 설교 적용 포인트
-                                </span>
+                                <span class="font-bold text-indigo-800 text-sm flex items-center gap-1 mb-1"><i data-lucide="lightbulb" class="w-4 h-4"></i> 설교 적용 포인트</span>
                                 <p class="text-sm text-indigo-900 leading-relaxed">${formatText(item.preachingInsight)}</p>
                             </div>
-
                             <div class="bg-white p-3 rounded-md border border-indigo-50 shadow-sm">
                                 <span class="text-xs font-bold text-indigo-800 flex items-center gap-1 mb-2"><i data-lucide="book-open" class="w-3 h-3"></i> 타 성경 본문 용례</span>
-                                <ul class="text-sm text-slate-600 space-y-2">${item.crossReferences.map(ref => `<li class="flex items-start gap-2"><span class="text-indigo-400 mt-0.5">•</span><span>${ref}</span></li>`).join('')}</ul>
+                                <ul class="text-sm text-slate-600 space-y-2">${(item.crossReferences||[]).map(ref => `<li class="flex items-start gap-2"><span class="text-indigo-400 mt-0.5">•</span><span>${ref}</span></li>`).join('')}</ul>
                             </div>
                         </div>`;
                 });
@@ -562,14 +649,16 @@
 
             if ((targetSection === 'all' || targetSection === 'books') && data.bookReferences) {
                 const el = document.getElementById('resBookReferences'); el.innerHTML = '';
-                data.bookReferences.forEach(ref => { el.innerHTML += `<div class="bg-white p-4 rounded-lg border border-amber-100 shadow-sm"><div class="flex items-center gap-2 mb-2"><i data-lucide="book" class="w-4 h-4 text-amber-600"></i><span class="font-bold text-slate-800">${ref.bookTitle}</span><span class="text-sm text-slate-500"> - ${ref.author}</span></div><blockquote class="border-l-4 border-amber-300 pl-3 my-3 text-slate-600 italic text-sm leading-relaxed">"${ref.quote}"</blockquote><p class="text-xs text-amber-800 bg-amber-100/50 p-2 rounded"><strong>💡 설교 가이드:</strong> ${ref.application}</p></div>`; });
+                data.bookReferences.forEach(ref => {
+                    el.innerHTML += `<div class="bg-white p-4 rounded-lg border border-amber-100 shadow-sm"><div class="flex items-center gap-2 mb-2"><i data-lucide="book" class="w-4 h-4 text-amber-600"></i><span class="font-bold text-slate-800">${ref.bookTitle}</span><span class="text-sm text-slate-500"> - ${ref.author}</span></div><blockquote class="border-l-4 border-amber-300 pl-3 my-3 text-slate-600 italic text-sm leading-relaxed">"${ref.quote}"</blockquote><p class="text-xs text-amber-800 bg-amber-100/50 p-2 rounded"><strong>설교 가이드:</strong> ${ref.application}</p></div>`;
+                });
             }
             if ((targetSection === 'all' || targetSection === 'youtube') && data.youtubeInsights) populateList('resYoutubeInsights', data.youtubeInsights);
             if ((targetSection === 'all' || targetSection === 'ai') && data.aiInsights) populateList('resAiInsights', data.aiInsights);
             if ((targetSection === 'all' || targetSection === 'outline') && data.outlineIntro) {
                 document.getElementById('resOutlineIntro').innerHTML = formatText(data.outlineIntro);
                 const bodyEl = document.getElementById('resOutlineBody'); bodyEl.innerHTML = '';
-                data.outlineBody.forEach(item => { bodyEl.innerHTML += `<li class="mb-3">${formatText(item)}</li>`; });
+                (data.outlineBody||[]).forEach(item => { bodyEl.innerHTML += `<li class="mb-3">${formatText(item)}</li>`; });
                 document.getElementById('resOutlineConclusion').innerHTML = formatText(data.outlineConclusion);
             }
             if ((targetSection === 'all' || targetSection === 'bonus') && data.illustration) {
@@ -585,15 +674,14 @@
             const passageInput = specificPassage || document.getElementById('passage').value.trim();
             const contextInput = document.getElementById('context').value.trim();
             const errorBox = document.getElementById('errorBox');
-            
             errorBox.classList.add('hidden');
 
             if (targetSection === 'all' && !passageInput && !contextInput) {
-                errorBox.innerHTML = "<strong>입력 오류:</strong> 성경 본문이나 상황을 입력해주세요."; 
+                errorBox.innerHTML = "<strong>입력 오류:</strong> 성경 본문이나 상황을 입력해주세요.";
                 errorBox.classList.remove('hidden'); return;
             }
-            if (!document.getElementById('geminiApiKey').value.trim()) {
-                errorBox.innerHTML = "<strong>설정 오류:</strong> 좌측 상단에 구글 Gemini API 키를 입력해주세요.";
+            if (getApiMode() === 'gemini' && !document.getElementById('geminiApiKey').value.trim()) {
+                errorBox.innerHTML = "<strong>설정 오류:</strong> Gemini API 키를 입력하거나 '무료 모드'를 선택해주세요.";
                 errorBox.classList.remove('hidden'); return;
             }
 
@@ -606,17 +694,24 @@
             } else { setSectionLoading(targetSection, true); }
 
             try {
-                const result = await callGeminiAPI(targetSection, passageInput, contextInput);
-                if(targetSection !== 'all') { currentSermonState.fullDataRaw[targetSection] = result[targetSection] || result; }
+                const result = await callAI(targetSection, passageInput, contextInput);
+                if(targetSection !== 'all') {
+                    // 개별 섹션 업데이트
+                    if(currentSermonState.fullDataRaw) {
+                        Object.assign(currentSermonState.fullDataRaw, result);
+                    }
+                }
                 renderData(result, targetSection);
                 if (targetSection === 'all') {
                     document.getElementById('globalLoadingState').classList.replace('flex', 'hidden');
                     document.getElementById('resultContent').classList.remove('hidden');
                 }
             } catch (error) {
+                console.error('생성 오류:', error);
                 if(targetSection === 'all') {
                     errorBox.innerHTML = `<strong>오류 발생:</strong> ${error.message}`; errorBox.classList.remove('hidden');
                     document.getElementById('globalLoadingState').classList.replace('flex', 'hidden');
+                    document.getElementById('emptyState').classList.remove('hidden');
                 } else alert(`새로고침 오류: ${error.message}`);
             } finally {
                 setButtonsDisabled(false);
@@ -637,7 +732,7 @@
             btnGen.disabled = true; btnGen.classList.add('opacity-50', 'cursor-not-allowed');
 
             try {
-                const result = await callGeminiAPI('fullScript');
+                const result = await callAI('fullScript');
                 document.getElementById('fsPassage').textContent = currentSermonState.passage;
                 document.getElementById('fsTitle').textContent = `"${currentSermonState.title}"`;
                 document.getElementById('fsBody').innerHTML = result.scriptHtml;
@@ -660,9 +755,9 @@
             modal.classList.remove('hidden'); modalContent.classList.add('hidden'); modalLoading.classList.replace('hidden', 'flex');
             const currentContext = document.getElementById('context').value.trim() || '일반적인 주일 예배';
             try {
-                const result = await callGeminiAPI('passageCandidates', null, currentContext);
+                const result = await callAI('passageCandidates', null, currentContext);
                 candidateList.innerHTML = '';
-                result.candidates.forEach(cand => {
+                (result.candidates||[]).forEach(cand => {
                     const btn = document.createElement('button');
                     btn.className = "w-full text-left p-4 bg-white border border-slate-200 hover:border-blue-500 hover:bg-blue-50 rounded-lg transition-colors group";
                     btn.innerHTML = `<div class="flex justify-between items-center mb-1"><span class="font-bold text-blue-700 group-hover:text-blue-800">${cand.passage}</span><i data-lucide="arrow-right" class="w-4 h-4 text-slate-300 group-hover:text-blue-500"></i></div><div class="text-sm font-medium text-slate-800 mb-1">"${cand.title}"</div><div class="text-xs text-slate-500">${cand.reason}</div>`;
