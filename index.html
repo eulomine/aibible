@@ -433,7 +433,8 @@
                 throw new Error("API 키가 입력되지 않았습니다. 좌측 상단에 API 키를 입력해주세요.");
             }
 
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${userApiKey}`;
+            // 모델 이름을 공개적으로 안정적이고 가장 성능이 뛰어난 'gemini-1.5-pro-latest' 로 변경했습니다.
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key=${userApiKey}`;
             let prompt = "";
             let sysInst = "당신은 개혁주의/복음주의 신학 기반의 탁월한 설교자이자 목회 보조 AI입니다. 정보 전달을 넘어 목회적/설교적 가이드를 확실히 제공합니다.";
             let schema = null;
