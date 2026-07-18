@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 설교 도우미 Ver.5.1 (오류 수정 완벽판)</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Gentium+Book+Plus:ital,wght@0,400;0,700;1,400&display=swap');
+        
+        body { font-family: 'Noto Sans KR', sans-serif; background-color: #f8fafc; }
+        .font-original { font-family: 'Gentium Book Plus', serif; }
+        
+        .loader { border: 3px solid #f3f3f3; border-top: 3px solid #3b82f6; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
+        .loader-large { width: 40px; height: 40px; border-width: 4px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        .prose-custom p { margin-bottom: 0.75rem; line-height: 1.6; }
+        .prose-custom ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 1rem; }
+        .prose-custom li { margin-bottom: 0.5rem; }
+        .script-format p { margin-bottom: 1.25rem; line-height: 1.8; font-size: 1.05rem; }
+        
+        .section-loading { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255, 255, 255, 0.8); display: flex; align-items: center; justify-content: center; border-radius: inherit; z-index: 10; }
+        .refresh-btn { transition: transform 0.2s; }
+        .refresh-btn:hover { transform: rotate(15deg); }
+        .refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        .modal-bg { background-color: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); }
+
+        #draftWrapper, #fullSermonContent { background-color: white; }
+
+        @media print {
+            body { background-color: white; }
+            .no-print { display: none !important; }
+            .shadow-sm, .shadow-md, .shadow-lg, .shadow-2xl { box-shadow: none !important; }
+            .border { border: 1px solid #ddd !important; }
+            #printArea { padding: 0; margin: 0; width: 100%; max-width: 100%; }
+            body.print-mode-draft #fullSermonWrapper { display: none !important; }
+            body.print-mode-script #draftWrapper { display: none !important; }
+        }
+    </style>
+</head>
+<body class="text-slate-800 min-h-screen pb-12">
+
+    <!-- Header -->
+    <header class="bg-blue-800 text-white shadow-lg py-6 no-print">
+        <div class="max-w-5xl mx-auto px-4 flex items-center gap-3">
+            <i data-lucide="book-open" class="w-8 h-8"></i>
+            <div>
+                <h1 class="text-2xl font-bold">AI 설교 도우미 Ver.5.1</h1>
+                <p class="text-blue-200 text-sm mt-1">대역비교 및 배경지식 영역의 설교 제언 완벽 통합 (버그 수정)</p>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-5xl mx-auto px-4 py-8 grid grid-cols-1 md:grid-cols-12 gap-8">
+        
+        <!-- Input Section -->
+        <div class="md:col-span-4 space-y-6 no-print">
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 sticky top-6">
+                <h2 class="text-lg font-semibold flex items-center gap-2 mb-4">
+                    <i data-lucide="pen-tool" class="w-5 h-5 text-blue-600"></i>
+                    설교 정보 입력
+                </h2>
+                <div class="space-y-4">
+                    <div>
+                        <label for="passage" class="block text-sm font-medium text-slate-700 mb-1">1. 성경 본문 (선택)</label>
+                        <input type="text" id="passage" placeholder="예: 에스겔 33:21-33" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label for="context" class="block text-sm font-medium text-slate-700 mb-1">2. 설교 상황 (선택)</label>
+                        <input type="text" id="context" placeholder="예: 새벽예배, 주일대예배" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                        <div class="flex flex-wrap gap-2 mt-2">
+                            <button onclick="setContext('새벽예배')" class="text-xs bg-slate-100 hover:bg-blue-100 text-slate-600 px-2 py-1 rounded transition">새벽예배</button>
+                            <button onclick="setContext('주일예배')" class="text-xs bg-slate-100 hover:bg-blue-100 text-slate-600 px-2 py-1 rounded transition">주일예배</button>
+                            <button onclick="setContext('수요예배')" class="text-xs bg-slate-100 hover:bg-blue-100 text-slate-600 px-2 py-1 rounded transition">수요예배</button>
+                        </div>
+                    </div>
+                    <button id="generateBtn" onclick="generateSermon('all')" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg shadow-md transition-colors flex items-center justify-center gap-2 mt-4">
+                        <i data-lucide="sparkles" class="w-5 h-5"></i>
+                        설교 초안 생성하기
+                    </button>
+                </div>
+            </div>
+            <div id="errorBox" class="hidden bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm"></div>
+        </div>
+
+        <!-- Output Section -->
+        <div id="printArea" class="md:col-span-8">
+            
+            <div id="globalLoadingState" class="hidden flex-col items-center justify-center h-64 bg-white rounded-xl shadow-sm border border-slate-200 no-print">
+                <div class="loader loader-large mb-4"></div>
+                <p class="text-blue-800 font-medium text-lg" id="loadingText">말씀의 지혜를 모으고 있습니다...</p>
+                <p class="text-slate-500 text-sm mt-2">각 영역별 설교 제언을 함께 분석 중입니다 (약 20~30초 소요)</p>
+            </div>
+
+            <div id="emptyState" class="flex flex-col items-center justify-center h-full min-h-[400px] bg-white rounded-xl shadow-sm border border-slate-200 text-slate-400 no-print">
+                <i data-lucide="library" class="w-16 h-16 mb-4 opacity-50"></i>
+                <p class="text-lg">본문이나 상황을 입력하고 생성을 눌러주세요.</p>
+            </div>
+
+            <!-- 결과물 컨테이너 -->
+            <div id="resultContent" class="hidden space-y-6">
+                
+                <!-- ================= [ 초안 영역 ] ================= -->
+                <div id="draftWrapper" class="space-y-6 rounded-xl">
+                    
+                    <!-- 0. Header (Title & Passage) -->
+                    <div id="sec-header" class="relative bg-white rounded-xl shadow-sm border border-slate-200 p-6 text-center border-t-4 border-t-blue-600">
+                        <button onclick="openPassageModal()" class="refresh-btn no-print absolute top-4 right-4 text-slate-400 hover:text-blue-600" title="다른 본문 추천받기">
+                            <i data-lucide="refresh-cw" class="w-5 h-5"></i>
+                        </button>
+                        <p id="resPassage" class="text-blue-600 font-bold mb-2 text-lg"></p>
+                        <h2 id="resTitle" class="text-2xl font-black text-slate-800 mb-2"></h2>
+                        <p id="resContext" class="text-sm text-slate-500"></p>
+                    </div>
+
+                    <!-- 0.5 성경 대역본 비교 & 설교 적용 -->
+                    <div id="sec-bible" class="relative bg-slate-50 rounded-xl shadow-sm border border-slate-200 p-6">
+                        <div class="flex justify-between items-center mb-4 border-b pb-2">
+                            <h3 class="text-lg font-bold flex items-center gap-2 text-slate-800"><i data-lucide="book-open-check" class="w-5 h-5 text-blue-700"></i>성경 본문 대역 비교</h3>
+                            <button onclick="refreshSection('bible')" class="refresh-btn no-print text-slate-400 hover:text-blue-700"><i data-lucide="refresh-cw" class="w-4 h-4"></i></button>
+                        </div>
+                        <div id="resBibleTexts" class="space-y-4 mb-4"></div>
+                        
+                        <div class="mt-4 bg-blue-100/50 p-4 rounded-md border border-blue-200 hidden" id="resBibleInsightWrapper">
+                            <span class="font-bold text-blue-800 text-sm flex items-center gap-1 mb-2">
+                                <i data-lucide="lightbulb" class="w-4 h-4"></i> 대역본 비교를 통한 설교 통찰
+                            </span>
+                            <p id="resBibleInsight" class="text-sm text-blue-900 leading-relaxed"></p>
+                        </div>
+                        <div id="load-bible" class="section-loading hidden no-print"><div class="loader"></div></div>
+                    </div>
+
+                    <!-- 0.8 역사적/지리적 배경 & 설교 적용 -->
+                    <div id="sec-background" class="relative bg-stone-50 rounded-xl shadow-sm border border-stone-200 p-6">
+                        <div class="flex justify-between items-center mb-4 border-b border-stone-200 pb-2">
+                            <h3 class="text-lg font-bold flex items-center gap-2 text-stone-800"><i data-lucide="map" class="w-5 h-5 text-stone-600"></i>역사적/지리적 배경 이해</h3>
+                            <button onclick="refreshSection('background')" class="refresh-btn no-print text-stone-400 hover:text-stone-700"><i data-lucide="refresh-cw" class="w-4 h-4"></i></button>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-4">
+                            <div class="md:col-span-2 space-y-4">
+                                <div><h4 class="font-bold text-stone-700 text-sm mb-1 flex items-center gap-1"><i data-lucide="landmark" class="w-4 h-4"></i> 역사적 상황</h4><p id="resHistBackground" class="text-sm text-stone-600 leading-relaxed"></p></div>
+                                <div><h4 class="font-bold text-stone-700 text-sm mb-1 flex items-center gap-1"><i data-lucide="map-pin" class="w-4 h-4"></i> 지리적 특징</h4><p id="resGeoBackground" class="text-sm text-stone-600 leading-relaxed"></p></div>
+                            </div>
+                            <div class="md:col-span-1 flex flex-col items-center justify-center bg-white border border-stone-200 rounded-lg p-2 no-print">
+                                <div id="resBackgroundImg" class="w-full h-40 bg-stone-100 rounded flex items-center justify-center overflow-hidden relative"></div>
+                                <p id="resImgCaption" class="text-xs text-stone-500 mt-2 text-center"></p>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4 bg-stone-200/50 p-4 rounded-md border border-stone-300 hidden" id="resBackgroundInsightWrapper">
+                            <span class="font-bold text-stone-800 text-sm flex items-center gap-1 mb-2">
+                                <i data-lucide="lightbulb" class="w-4 h-4"></i> 배경 지식을 활용한 설교 제언
+                            </span>
+                            <p id="resBackgroundInsight" class="text-sm text-stone-900 leading-relaxed"></p>
+                        </div>
+                        <div id="load-background" class="section-loading hidden no-print"><div class="loader text-stone-600"></div></div>
+                    </div>
+
+                    <!-- 1. 심층 원어적 주해 및 적용 -->
+                    <div id="sec-exegesis" class="relative bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                        <div class="flex justify-between items-center mb-4 border-b pb-2">
+                            <h3 class="text-lg font-bold flex items-center gap-2 text-slate-800"><i data-lucide="languages" class="w-5 h-5 text-indigo-600"></i>1. 심층 원어 주해 및 설교 가이드</h3>
+                            <button onclick="refreshSection('exegesis')" class="refresh-btn no-print text-slate-400 hover:text-indigo-600"><i data-lucide="refresh-cw" class="w-4 h-4"></i></button>
+                        </div>
+                        <div id="resExegesis" class="space-y-4"></div>
+                        <div id="load-exegesis" class="section-loading hidden no-print"><div class="loader"></div></div>
+                    </div>
+
+                    <!-- 2. 신학 서적 인용 -->
+                    <div id="sec-books" class="relative bg-amber-50 rounded-xl shadow-sm border border-amber-200 p-6">
+                        <div class="flex justify-between items-center mb-4 border-b border-amber-200 pb-2">
+                            <h3 class="text-lg font-bold flex items-center gap-2 text-amber-900"><i data-lucide="book-marked" class="w-5 h-5 text-amber-600"></i>2. 신학 서적/주석 인용</h3>
+                            <button onclick="refreshSection('books')" class="refresh-btn no-print text-amber-500 hover:text-amber-700"><i data-lucide="refresh-cw" class="w-4 h-4"></i></button>
+                        </div>
+                        <div id="resBookReferences" class="space-y-4"></div>
+                        <div id="load-books" class="section-loading hidden no-print" style="background: rgba(254, 252, 232, 0.8);"><div class="loader" style="border-top-color: #d97706;"></div></div>
+                    </div>
+
+                    <!-- 3 & 4. 설교 인사이트 -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div id="sec-youtube" class="relative bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                            <div class="flex justify-between items-center mb-4 border-b pb-2">
+                                <h3 class="text-lg font-bold flex items-center gap-2 text-slate-800"><i data-lucide="mic" class="w-5 h-5 text-red-500"></i>3. 설교적 접근 가이드</h3>
+                                <button onclick="refreshSection('youtube')" class="refresh-btn no-print text-slate-400 hover:text-red-500"><i data-lucide="refresh-cw" class="w-4 h-4"></i></button>
+                            </div>
+                            <ul id="resYoutubeInsights" class="text-slate-700 text-sm space-y-3 list-disc pl-5"></ul>
+                            <div id="load-youtube" class="section-loading hidden no-print"><div class="loader"></div></div>
+                        </div>
+
+                        <div id="sec-ai" class="relative bg-white rounded-xl shadow-sm border border-slate-200 p-6 border-l-4 border-l-purple-500">
+                            <div class="flex justify-between items-center mb-4 border-b pb-2">
+                                <h3 class="text-lg font-bold flex items-center gap-2 text-slate-800"><i data-lucide="lightbulb" class="w-5 h-5 text-purple-500"></i>4. 현대 회중을 위한 적용</h3>
+                                <button onclick="refreshSection('ai')" class="refresh-btn no-print text-slate-400 hover:text-purple-500"><i data-lucide="refresh-cw" class="w-4 h-4"></i></button>
+                            </div>
+                            <ul id="resAiInsights" class="text-slate-700 text-sm space-y-3 list-disc pl-5"></ul>
+                            <div id="load-ai" class="section-loading hidden no-print"><div class="loader"></div></div>
+                        </div>
+                    </div>
+
+                    <!-- 5. 설교 개요 -->
+                    <div id="sec-outline" class="relative bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                        <div class="flex justify-between items-center mb-4 border-b pb-2">
+                            <h3 class="text-lg font-bold flex items-center gap-2 text-slate-800"><i data-lucide="list-ordered" class="w-5 h-5 text-emerald-600"></i>5. 설교 개요</h3>
+                            <button onclick="refreshSection('outline')" class="refresh-btn no-print text-slate-400 hover:text-emerald-600"><i data-lucide="refresh-cw" class="w-4 h-4"></i></button>
+                        </div>
+                        <div class="space-y-4 bg-slate-50 p-5 rounded-lg border border-slate-100">
+                            <div><span class="font-bold text-emerald-800 bg-emerald-100 px-2 py-1 rounded text-sm inline-block mb-2">서론</span><p id="resOutlineIntro" class="text-slate-700 text-sm ml-2"></p></div>
+                            <div class="my-4"><span class="font-bold text-blue-800 bg-blue-100 px-2 py-1 rounded text-sm inline-block mb-2">본론</span><ul id="resOutlineBody" class="text-slate-700 text-sm space-y-3 list-decimal pl-6 font-medium"></ul></div>
+                            <div><span class="font-bold text-purple-800 bg-purple-100 px-2 py-1 rounded text-sm inline-block mb-2">결론</span><p id="resOutlineConclusion" class="text-slate-700 text-sm ml-2"></p></div>
+                        </div>
+                        <div id="load-outline" class="section-loading hidden no-print"><div class="loader"></div></div>
+                    </div>
+
+                    <!-- 6. 보너스 -->
+                    <div id="sec-bonus" class="relative bg-slate-800 text-white rounded-xl shadow-sm p-6 no-print">
+                        <div class="flex justify-between items-center mb-4 border-b border-slate-600 pb-2">
+                            <h3 class="text-lg font-bold flex items-center gap-2 text-white"><i data-lucide="gift" class="w-5 h-5 text-yellow-400"></i>추천 (예화/찬양/기도)</h3>
+                            <button onclick="refreshSection('bonus')" class="refresh-btn text-slate-400 hover:text-yellow-400"><i data-lucide="refresh-cw" class="w-4 h-4"></i></button>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                            <div><h4 class="text-yellow-400 font-semibold text-sm mb-2">📖 예화</h4><p id="resIllustration" class="text-slate-300 text-sm leading-relaxed"></p></div>
+                            <div class="space-y-4">
+                                <div><h4 class="text-yellow-400 font-semibold text-sm mb-2">🎵 찬양</h4><ul id="resHymns" class="text-slate-300 text-sm space-y-1 list-disc pl-5"></ul></div>
+                                <div><h4 class="text-yellow-400 font-semibold text-sm mb-2">🙏 마무리 기도</h4><p id="resPrayer" class="text-slate-300 text-sm italic leading-relaxed"></p></div>
+                            </div>
+                        </div>
+                        <div id="load-bonus" class="section-loading hidden no-print" style="background: rgba(30, 41, 59, 0.8);"><div class="loader"></div></div>
+                    </div>
+
+                    <!-- 🖨️ 다운로드/복사/풀스크립트 전환 영역 (no-print) -->
+                    <div class="bg-indigo-50 border border-indigo-100 rounded-xl p-6 mt-8 flex flex-col items-center gap-4 no-print">
+                        <h3 class="font-bold text-indigo-900 text-lg">💡 초안 저장 및 활용하기</h3>
+                        
+                        <div class="flex flex-wrap justify-center gap-3 w-full">
+                            <button onclick="copyToClipboard('draftWrapper')" class="flex-1 max-w-[220px] flex items-center justify-center gap-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-medium py-2.5 rounded-lg shadow-sm transition-colors">
+                                <i data-lucide="copy" class="w-4 h-4"></i> 초안 복사 (한글/워드용)
+                            </button>
+                            <button onclick="printSection('draft')" class="flex-1 max-w-[220px] flex items-center justify-center gap-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-medium py-2.5 rounded-lg shadow-sm transition-colors">
+                                <i data-lucide="printer" class="w-4 h-4"></i> 초안 인쇄 (PDF)
+                            </button>
+                        </div>
+                        
+                        <div class="w-full h-px bg-indigo-200 my-2"></div>
+                        
+                        <p class="text-sm text-indigo-700 text-center mb-1">초안이 완성되었습니다! AI가 이 뼈대를 바탕으로 실제 강단용 <strong>완전한 설교문</strong>을 써드립니다.</p>
+                        
+                        <button id="btnGenerateFull" onclick="generateFullSermon()" class="w-full max-w-md flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-xl shadow-md transition-all hover:scale-[1.02]">
+                            <i data-lucide="file-signature" class="w-5 h-5"></i> 설교문 전체 (Full Script) 작성하기
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- ================= [ 풀스크립트 (전체 설교문) 영역 ] ================= -->
+                <div id="fullSermonWrapper" class="hidden space-y-6 mt-12 pt-8 border-t-2 border-slate-200">
+                    
+                    <div id="load-fullSermon" class="hidden flex-col items-center justify-center py-12 bg-white rounded-xl border border-slate-200 shadow-sm no-print">
+                        <div class="loader loader-large text-indigo-600 mb-4 border-t-indigo-600"></div>
+                        <p class="text-indigo-800 font-medium text-lg text-center">개요와 주석을 바탕으로<br>전체 설교문을 집필하고 있습니다...</p>
+                        <p class="text-slate-500 text-sm mt-2">약 30~40초 정도 소요됩니다.</p>
+                    </div>
+
+                    <div id="fullSermonContent" class="hidden bg-white rounded-xl shadow-md border border-slate-200 p-8 md:p-12">
+                        <div class="text-center mb-10 border-b border-slate-200 pb-8">
+                            <p class="text-slate-500 font-medium mb-2">[ 전체 설교문 ]</p>
+                            <p id="fsPassage" class="text-indigo-600 font-bold mb-3 text-lg"></p>
+                            <h2 id="fsTitle" class="text-3xl font-black text-slate-900 leading-tight"></h2>
+                        </div>
+                        
+                        <div id="fsBody" class="text-slate-800 script-format"></div>
+                        
+                        <!-- 풀스크립트 복사/인쇄 영역 -->
+                        <div class="mt-12 pt-6 border-t border-slate-200 flex justify-end gap-3 no-print">
+                            <button onclick="copyToClipboard('fullSermonContent')" class="flex items-center gap-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-medium py-2 px-4 rounded-lg shadow-sm transition-colors">
+                                <i data-lucide="copy" class="w-4 h-4"></i> 설교문 복사 (한글/워드용)
+                            </button>
+                            <button onclick="printSection('script')" class="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg shadow-sm transition-colors">
+                                <i data-lucide="printer" class="w-4 h-4"></i> 설교문 인쇄 (PDF)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal -->
+    <div id="passageModal" class="hidden fixed inset-0 z-50 flex items-center justify-center modal-bg px-4 no-print">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden">
+            <div class="bg-blue-600 px-6 py-4 flex justify-between items-center text-white">
+                <h3 class="font-bold flex items-center gap-2"><i data-lucide="book" class="w-5 h-5"></i> 새로운 본문 후보 제안</h3>
+                <button onclick="closePassageModal()" class="hover:text-blue-200"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <div class="p-6">
+                <div id="modalLoading" class="hidden flex-col items-center justify-center py-8">
+                    <div class="loader mb-3 text-blue-600"></div>
+                    <p class="text-sm text-slate-600">상황에 맞는 다른 본문을 찾고 있습니다...</p>
+                </div>
+                <div id="modalContent" class="space-y-3">
+                    <div id="candidateList" class="space-y-2"></div>
+                </div>
+            </div>
+            <div class="bg-slate-50 px-6 py-4 flex justify-end">
+                <button onclick="closePassageModal()" class="text-slate-500 hover:text-slate-700 text-sm font-medium px-4 py-2">취소</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+        const apiKey = ""; 
+        let currentSermonState = { passage: "", title: "", context: "", fullDataRaw: null };
+
+        function setContext(text) { document.getElementById('context').value = text; }
+        const delay = ms => new Promise(res => setTimeout(res, ms));
+        function formatText(text) { return text.replace(/\n/g, '<br>'); }
+        
+        function setSectionLoading(sectionId, isLoading) {
+            const loader = document.getElementById(`load-${sectionId}`);
+            if(loader) isLoading ? loader.classList.replace('hidden', 'flex') : loader.classList.replace('flex', 'hidden');
+        }
+        
+        function setButtonsDisabled(disabled) {
+            document.querySelectorAll('.refresh-btn, #btnGenerateFull').forEach(btn => btn.disabled = disabled);
+            const genBtn = document.getElementById('generateBtn');
+            genBtn.disabled = disabled;
+            disabled ? genBtn.classList.add('opacity-70', 'cursor-not-allowed') : genBtn.classList.remove('opacity-70', 'cursor-not-allowed');
+        }
+
+        // --- 클립보드 복사 함수 ---
+        function copyToClipboard(elementId) {
+            const el = document.getElementById(elementId);
+            const range = document.createRange();
+            range.selectNodeContents(el);
+            const sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
+            try {
+                document.execCommand('copy');
+                alert('✅ 내용이 클립보드에 성공적으로 복사되었습니다!\n\n아래아 한글(HWP)이나 MS Word를 열고 "붙여넣기(Ctrl+V)" 하시면 서식이 그대로 복사됩니다.');
+            } catch (err) {
+                alert('복사 중 오류가 발생했습니다. 직접 드래그해서 복사해주세요.');
+            }
+            sel.removeAllRanges();
+        }
+
+        function printSection(mode) {
+            document.body.classList.remove('print-mode-draft', 'print-mode-script');
+            document.body.classList.add(`print-mode-${mode}`);
+            window.print();
+            setTimeout(() => { document.body.classList.remove(`print-mode-${mode}`); }, 1000);
+        }
+
+        // --- 💡 버그 수정: Schema 조각 사전 분리 (Initialization 오류 방지) ---
+        const bibleTextsSchema = { 
+            type: "ARRAY", items: { type: "OBJECT", properties: { verseNum: { type: "STRING" }, koreanRev: { type: "STRING" }, koreanNew: { type: "STRING" }, english: { type: "STRING" } }, required: ["verseNum", "koreanRev", "koreanNew", "english"] } 
+        };
+        const backgroundSchema = { 
+            type: "OBJECT", properties: { historicalContext: { type: "STRING" }, geographicalContext: { type: "STRING" }, mapSearchQuery: { type: "STRING" }, mapCaption: { type: "STRING" }, preachingInsight: { type: "STRING" } }, required: ["historicalContext", "geographicalContext", "mapSearchQuery", "mapCaption", "preachingInsight"] 
+        };
+        const exegesisSchema = { 
+            type: "ARRAY", items: { type: "OBJECT", properties: { word: { type: "STRING" }, originalText: { type: "STRING" }, pronunciation: { type: "STRING" }, language: { type: "STRING" }, meaning: { type: "STRING" }, crossReferences: { type: "ARRAY", items: { type: "STRING" } }, preachingInsight: { type: "STRING" } }, required: ["word", "originalText", "pronunciation", "language", "meaning", "crossReferences", "preachingInsight"] } 
+        };
+        const bookReferencesSchema = { 
+            type: "ARRAY", items: { type: "OBJECT", properties: { author: { type: "STRING" }, bookTitle: { type: "STRING" }, quote: { type: "STRING" }, application: { type: "STRING" } }, required: ["author", "bookTitle", "quote", "application"] } 
+        };
+        const stringArraySchema = { type: "ARRAY", items: { type: "STRING" } };
+
+        const schemas = {
+            all: { 
+                properties: { 
+                    passageUsed: { type: "STRING" }, title: { type: "STRING" }, 
+                    bibleTexts: bibleTextsSchema, 
+                    bibleTranslationInsight: { type: "STRING" }, 
+                    background: backgroundSchema, 
+                    exegesis: exegesisSchema, 
+                    bookReferences: bookReferencesSchema, 
+                    youtubeInsights: stringArraySchema, aiInsights: stringArraySchema, 
+                    outlineIntro: { type: "STRING" }, outlineBody: stringArraySchema, outlineConclusion: { type: "STRING" }, 
+                    illustration: { type: "STRING" }, hymns: stringArraySchema, prayer: { type: "STRING" } 
+                }, 
+                required: ["passageUsed", "title", "bibleTexts", "bibleTranslationInsight", "background", "exegesis", "bookReferences", "youtubeInsights", "aiInsights", "outlineIntro", "outlineBody", "outlineConclusion", "illustration", "hymns", "prayer"] 
+            },
+            bible: { properties: { bibleTexts: bibleTextsSchema, bibleTranslationInsight: { type: "STRING" } }, required: ["bibleTexts", "bibleTranslationInsight"] },
+            background: { properties: { background: backgroundSchema }, required: ["background"] },
+            exegesis: { properties: { exegesis: exegesisSchema }, required: ["exegesis"] },
+            books: { properties: { bookReferences: bookReferencesSchema }, required: ["bookReferences"] },
+            youtube: { properties: { youtubeInsights: stringArraySchema }, required: ["youtubeInsights"] },
+            ai: { properties: { aiInsights: stringArraySchema }, required: ["aiInsights"] },
+            outline: { properties: { outlineIntro: { type: "STRING" }, outlineBody: stringArraySchema, outlineConclusion: { type: "STRING" } }, required: ["outlineIntro", "outlineBody", "outlineConclusion"] },
+            bonus: { properties: { illustration: { type: "STRING" }, hymns: stringArraySchema, prayer: { type: "STRING" } }, required: ["illustration", "hymns", "prayer"] },
+            passageCandidates: { properties: { candidates: { type: "ARRAY", items: { type: "OBJECT", properties: { passage: { type: "STRING" }, title: { type: "STRING" }, reason: { type: "STRING" } }, required: ["passage", "title", "reason"] } } }, required: ["candidates"] },
+            fullScript: { properties: { scriptHtml: { type: "STRING" } }, required: ["scriptHtml"] }
+        };
+
+        // --- Core API Request ---
+        async function callGeminiAPI(targetSection, passageInput, contextInput, retries = 3) {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+            let prompt = "";
+            let sysInst = "당신은 개혁주의/복음주의 신학 기반의 탁월한 설교자이자 목회 보조 AI입니다. 정보 전달을 넘어 목회적/설교적 가이드를 확실히 제공합니다.";
+            let schema = null;
+
+            if (targetSection === 'all') {
+                prompt = `설교 초안 작성. 본문: ${passageInput||'상황에 맞게 추천'}, 상황: ${contextInput||'일반주일'}. 
+                [중요 지시사항]
+                1. bibleTranslationInsight: 개역개정과 다른 번역의 뉘앙스 차이를 성도에게 어떻게 설명할지 가이드.
+                2. background 안의 preachingInsight: 역사/지리적 배경을 오늘날 성도 삶에 어떻게 적용할지 가이드.
+                3. exegesis 안의 preachingInsight: 원어 의미를 성도들에게 어떻게 설명/적용할지 구체적 가이드 필수.
+                4. youtubeInsights, aiInsights: "이 방향으로 설교 전개해 보세요" 식의 코칭 멘트.`;
+                schema = schemas.all;
+            } else if (targetSection === 'passageCandidates') {
+                prompt = `현재 상황(${contextInput || '일반 주일'})에 맞는 성경 본문 후보 3가지 제안. 기존 본문(${currentSermonState.passage}) 제외.`;
+                schema = schemas.passageCandidates;
+            } else if (targetSection === 'fullScript') {
+                prompt = `작성된 '설교 개요 및 주석 데이터'를 바탕으로 실제 강단에서 선포하는 구어체 형식의 "완전한 설교문(Full Script)" 작성.
+                본문: ${currentSermonState.passage}, 제목: ${currentSermonState.title}
+                데이터: ${JSON.stringify(currentSermonState.fullDataRaw)}
+                [지시사항]
+                1. 경어체(하십시오/합시다 체) 사용. 서론, 본론(대지별), 결론이 물 흐르듯 전개. 설교 시간 20-30분 분량의 풍부한 텍스트.
+                2. 대역본 비교 통찰, 배경 지식 적용점, 원어 의미, 예화를 자연스럽게 설교문 안에 녹여낼 것. HTML 태그(<p>, <br>, <strong>) 사용.`;
+                schema = schemas.fullScript;
+            } else {
+                prompt = `문맥(본문:${currentSermonState.passage}, 제목:${currentSermonState.title}). '${targetSection}' 부분 새롭게 작성. 설교적 관점을 강화.`;
+                schema = schemas[targetSection];
+            }
+
+            const payload = {
+                contents: [{ parts: [{ text: prompt }] }],
+                systemInstruction: { parts: [{ text: sysInst }] },
+                generationConfig: { responseMimeType: "application/json", responseSchema: { type: "OBJECT", properties: schema.properties, required: schema.required } }
+            };
+
+            for (let i = 0; i <= retries; i++) {
+                try {
+                    const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                    if (!response.ok) throw new Error(`API 오류`);
+                    const data = await response.json();
+                    return JSON.parse(data.candidates[0].content.parts[0].text);
+                } catch (error) {
+                    if (i === retries) throw error;
+                    await delay(1000 * Math.pow(2, i));
+                }
+            }
+        }
+
+        // --- UI Rendering ---
+        function renderData(data, targetSection) {
+            const populateList = (id, arr) => { const el = document.getElementById(id); el.innerHTML = ''; if(!arr) return; arr.forEach(item => { const li = document.createElement('li'); li.innerHTML = formatText(item); el.appendChild(li); }); };
+
+            if (targetSection === 'all') {
+                currentSermonState.fullDataRaw = data; 
+                document.getElementById('resPassage').textContent = `📖 본문: ${data.passageUsed}`;
+                document.getElementById('resTitle').textContent = `"${data.title}"`;
+                currentSermonState.passage = data.passageUsed;
+                currentSermonState.title = data.title;
+                currentSermonState.context = document.getElementById('context').value.trim() || "일반 강해 설교";
+                document.getElementById('resContext').textContent = `상황: ${currentSermonState.context}`;
+                document.getElementById('fullSermonWrapper').classList.add('hidden');
+            }
+
+            if ((targetSection === 'all' || targetSection === 'bible') && data.bibleTexts) {
+                const bibleEl = document.getElementById('resBibleTexts'); bibleEl.innerHTML = '';
+                data.bibleTexts.forEach(verse => {
+                    bibleEl.innerHTML += `<div class="bg-white border border-slate-200 rounded-lg p-4"><div class="font-bold text-blue-800 text-sm mb-2 border-b border-slate-100 pb-1">${verse.verseNum}</div><div class="space-y-2 text-sm"><div class="flex gap-2"><span class="w-16 flex-shrink-0 font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded text-xs text-center self-start mt-0.5">개역개정</span><p class="text-slate-800 font-medium">${verse.koreanRev}</p></div><div class="flex gap-2"><span class="w-16 flex-shrink-0 font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded text-xs text-center self-start mt-0.5">새번역</span><p class="text-blue-800">${verse.koreanNew}</p></div><div class="flex gap-2"><span class="w-16 flex-shrink-0 font-semibold text-slate-400 border border-slate-200 px-2 py-0.5 rounded text-xs text-center self-start mt-0.5">ENG</span><p class="text-slate-500 italic">${verse.english}</p></div></div></div>`;
+                });
+                if(data.bibleTranslationInsight) {
+                    const insightWrapper = document.getElementById('resBibleInsightWrapper');
+                    insightWrapper.classList.remove('hidden');
+                    document.getElementById('resBibleInsight').innerHTML = formatText(data.bibleTranslationInsight);
+                }
+            }
+
+            if ((targetSection === 'all' || targetSection === 'background') && data.background) {
+                document.getElementById('resHistBackground').innerHTML = formatText(data.background.historicalContext);
+                document.getElementById('resGeoBackground').innerHTML = formatText(data.background.geographicalContext);
+                document.getElementById('resImgCaption').textContent = data.background.mapCaption;
+                
+                const query = data.background.mapSearchQuery + ' ancient biblical landscape cinematic lighting';
+                const imgSearchUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(query)}?width=400&height=300&nologo=true`;
+                document.getElementById('resBackgroundImg').innerHTML = `<img src="${imgSearchUrl}" alt="${data.background.mapCaption}" class="w-full h-full object-cover relative z-10 rounded shadow-sm" onload="this.style.opacity=1" style="opacity:0; transition: opacity 0.5s;">`;
+
+                if(data.background.preachingInsight) {
+                    const bgInsightWrapper = document.getElementById('resBackgroundInsightWrapper');
+                    bgInsightWrapper.classList.remove('hidden');
+                    document.getElementById('resBackgroundInsight').innerHTML = formatText(data.background.preachingInsight);
+                }
+            }
+
+            if ((targetSection === 'all' || targetSection === 'exegesis') && data.exegesis) {
+                const exEl = document.getElementById('resExegesis'); exEl.innerHTML = '';
+                data.exegesis.forEach(item => {
+                    exEl.innerHTML += `
+                        <div class="bg-indigo-50/50 p-5 rounded-lg border border-indigo-100 mb-4 last:mb-0">
+                            <div class="flex flex-col mb-3 border-b border-indigo-100 pb-3">
+                                <div class="flex flex-wrap items-center gap-3 mb-1">
+                                    <span class="text-lg font-bold text-indigo-900">${item.word}</span>
+                                    <span class="text-xs font-semibold bg-indigo-100 text-indigo-700 px-2 py-1 rounded-full">${item.language}</span>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <span class="text-2xl font-original text-slate-800">${item.originalText}</span>
+                                    <span class="text-base font-medium text-slate-500 bg-white px-2 border border-slate-200 rounded shadow-sm">[${item.pronunciation}]</span>
+                                </div>
+                            </div>
+                            <p class="text-sm text-slate-700 leading-relaxed mb-4">${formatText(item.meaning)}</p>
+                            
+                            <div class="mb-4 bg-indigo-100/50 p-3 rounded-md border border-indigo-200">
+                                <span class="font-bold text-indigo-800 text-sm flex items-center gap-1 mb-1">
+                                    <i data-lucide="lightbulb" class="w-4 h-4"></i> 설교 적용 포인트
+                                </span>
+                                <p class="text-sm text-indigo-900 leading-relaxed">${formatText(item.preachingInsight)}</p>
+                            </div>
+
+                            <div class="bg-white p-3 rounded-md border border-indigo-50 shadow-sm">
+                                <span class="text-xs font-bold text-indigo-800 flex items-center gap-1 mb-2"><i data-lucide="book-open" class="w-3 h-3"></i> 타 성경 본문 용례</span>
+                                <ul class="text-sm text-slate-600 space-y-2">${item.crossReferences.map(ref => `<li class="flex items-start gap-2"><span class="text-indigo-400 mt-0.5">•</span><span>${ref}</span></li>`).join('')}</ul>
+                            </div>
+                        </div>`;
+                });
+            }
+
+            if ((targetSection === 'all' || targetSection === 'books') && data.bookReferences) {
+                const el = document.getElementById('resBookReferences'); el.innerHTML = '';
+                data.bookReferences.forEach(ref => { el.innerHTML += `<div class="bg-white p-4 rounded-lg border border-amber-100 shadow-sm"><div class="flex items-center gap-2 mb-2"><i data-lucide="book" class="w-4 h-4 text-amber-600"></i><span class="font-bold text-slate-800">${ref.bookTitle}</span><span class="text-sm text-slate-500"> - ${ref.author}</span></div><blockquote class="border-l-4 border-amber-300 pl-3 my-3 text-slate-600 italic text-sm leading-relaxed">"${ref.quote}"</blockquote><p class="text-xs text-amber-800 bg-amber-100/50 p-2 rounded"><strong>💡 설교 가이드:</strong> ${ref.application}</p></div>`; });
+            }
+            if ((targetSection === 'all' || targetSection === 'youtube') && data.youtubeInsights) populateList('resYoutubeInsights', data.youtubeInsights);
+            if ((targetSection === 'all' || targetSection === 'ai') && data.aiInsights) populateList('resAiInsights', data.aiInsights);
+            if ((targetSection === 'all' || targetSection === 'outline') && data.outlineIntro) {
+                document.getElementById('resOutlineIntro').innerHTML = formatText(data.outlineIntro);
+                const bodyEl = document.getElementById('resOutlineBody'); bodyEl.innerHTML = '';
+                data.outlineBody.forEach(item => { bodyEl.innerHTML += `<li class="mb-3">${formatText(item)}</li>`; });
+                document.getElementById('resOutlineConclusion').innerHTML = formatText(data.outlineConclusion);
+            }
+            if ((targetSection === 'all' || targetSection === 'bonus') && data.illustration) {
+                document.getElementById('resIllustration').innerHTML = formatText(data.illustration);
+                populateList('resHymns', data.hymns);
+                document.getElementById('resPrayer').innerHTML = formatText(data.prayer);
+            }
+            lucide.createIcons();
+        }
+
+        // --- Actions ---
+        async function generateSermon(targetSection = 'all', specificPassage = null) {
+            const passageInput = specificPassage || document.getElementById('passage').value.trim();
+            const contextInput = document.getElementById('context').value.trim();
+            const errorBox = document.getElementById('errorBox');
+            
+            if (targetSection === 'all' && !passageInput && !contextInput) {
+                errorBox.innerHTML = "<strong>입력 오류:</strong> 성경 본문이나 상황을 입력해주세요."; errorBox.classList.remove('hidden'); return;
+            }
+            errorBox.classList.add('hidden');
+
+            setButtonsDisabled(true);
+            if (targetSection === 'all') {
+                document.getElementById('emptyState').classList.add('hidden');
+                document.getElementById('resultContent').classList.add('hidden');
+                document.getElementById('globalLoadingState').classList.replace('hidden', 'flex');
+                if(specificPassage) document.getElementById('passage').value = specificPassage;
+            } else { setSectionLoading(targetSection, true); }
+
+            try {
+                const result = await callGeminiAPI(targetSection, passageInput, contextInput);
+                if(targetSection !== 'all') { currentSermonState.fullDataRaw[targetSection] = result[targetSection] || result; }
+                renderData(result, targetSection);
+                if (targetSection === 'all') {
+                    document.getElementById('globalLoadingState').classList.replace('flex', 'hidden');
+                    document.getElementById('resultContent').classList.remove('hidden');
+                }
+            } catch (error) {
+                if(targetSection === 'all') {
+                    errorBox.innerHTML = `<strong>오류:</strong> (${error.message})`; errorBox.classList.remove('hidden');
+                    document.getElementById('globalLoadingState').classList.replace('flex', 'hidden');
+                } else alert(`새로고침 오류: ${error.message}`);
+            } finally {
+                setButtonsDisabled(false);
+                if (targetSection !== 'all') setSectionLoading(targetSection, false);
+            }
+        }
+
+        function refreshSection(section) { if (!currentSermonState.passage) return; generateSermon(section); }
+
+        async function generateFullSermon() {
+            if (!currentSermonState.fullDataRaw) return;
+            const wrapper = document.getElementById('fullSermonWrapper');
+            const loader = document.getElementById('load-fullSermon');
+            const content = document.getElementById('fullSermonContent');
+            const btnGen = document.getElementById('btnGenerateFull');
+            
+            wrapper.classList.remove('hidden'); content.classList.add('hidden'); loader.classList.replace('hidden', 'flex');
+            btnGen.disabled = true; btnGen.classList.add('opacity-50', 'cursor-not-allowed');
+
+            try {
+                const result = await callGeminiAPI('fullScript');
+                document.getElementById('fsPassage').textContent = currentSermonState.passage;
+                document.getElementById('fsTitle').textContent = `"${currentSermonState.title}"`;
+                document.getElementById('fsBody').innerHTML = result.scriptHtml;
+                loader.classList.replace('flex', 'hidden'); content.classList.remove('hidden');
+                content.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } catch (error) {
+                alert(`풀스크립트 생성 중 오류: ${error.message}`); loader.classList.replace('flex', 'hidden');
+            } finally {
+                btnGen.disabled = false; btnGen.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+        }
+
+        // --- Modal Logic ---
+        const modal = document.getElementById('passageModal');
+        const modalContent = document.getElementById('modalContent');
+        const modalLoading = document.getElementById('modalLoading');
+        const candidateList = document.getElementById('candidateList');
+
+        async function openPassageModal() {
+            modal.classList.remove('hidden'); modalContent.classList.add('hidden'); modalLoading.classList.replace('hidden', 'flex');
+            const currentContext = document.getElementById('context').value.trim() || '일반적인 주일 예배';
+            try {
+                const result = await callGeminiAPI('passageCandidates', null, currentContext);
+                candidateList.innerHTML = '';
+                result.candidates.forEach(cand => {
+                    const btn = document.createElement('button');
+                    btn.className = "w-full text-left p-4 bg-white border border-slate-200 hover:border-blue-500 hover:bg-blue-50 rounded-lg transition-colors group";
+                    btn.innerHTML = `<div class="flex justify-between items-center mb-1"><span class="font-bold text-blue-700 group-hover:text-blue-800">${cand.passage}</span><i data-lucide="arrow-right" class="w-4 h-4 text-slate-300 group-hover:text-blue-500"></i></div><div class="text-sm font-medium text-slate-800 mb-1">"${cand.title}"</div><div class="text-xs text-slate-500">${cand.reason}</div>`;
+                    btn.onclick = () => { closePassageModal(); document.getElementById('loadingText').textContent = `'${cand.passage}' 본문으로 전체 설교를 재구성합니다...`; generateSermon('all', cand.passage); };
+                    candidateList.appendChild(btn);
+                });
+                lucide.createIcons();
+                modalLoading.classList.replace('flex', 'hidden'); modalContent.classList.remove('hidden');
+            } catch (error) { alert('후보를 불러오는데 실패했습니다.'); closePassageModal(); }
+        }
+        function closePassageModal() { modal.classList.add('hidden'); document.getElementById('loadingText').textContent = "말씀과 주석을 깊이 연구 중입니다..."; }
+    </script>
+</body>
+</html>
